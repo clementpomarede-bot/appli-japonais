@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2a5e">
+<title>Nihongo Tabi 日本語旅</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#f8f5fa;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+  /* Effet flip 3D des flashcards */
+  .scene{perspective:1000px}
+  .card{position:relative;height:170px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+  .card.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:1rem}
+  .back{transform:rotateY(180deg)}
+  .tab.active{color:#1e2a5e;border-bottom:3px solid #f4a7b9;font-weight:700}
+</style>
+</head>
+<body class="text-slate-800 pb-8">
+
+<!-- EN-TÊTE + PROGRESSION GLOBALE -->
+<header class="bg-indigo-900 text-white px-4 pt-4 pb-5 rounded-b-3xl shadow">
+  <div class="flex justify-between items-center">
+    <h1 class="text-xl font-bold">🌸 Nihongo Tabi <span class="text-pink-300">日本語旅</span></h1>
+    <button id="installBtn" class="hidden text-xs bg-pink-300 text-indigo-900 font-semibold px-3 py-1.5 rounded-full">Installer l'application</button>
+  </div>
+  <div class="mt-3 text-sm flex justify-between"><span>Progression globale</span><span id="pct">0%</span></div>
+  <div class="h-3 bg-indigo-800 rounded-full mt-1 overflow-hidden"><div id="bar" class="h-full bg-pink-300 transition-all" style="width:0"></div></div>
+</header>
+
+<!-- NAVIGATION PAR ONGLETS -->
+<nav class="flex bg-white shadow-sm sticky top-0 z-10 text-sm">
+  <button class="tab flex-1 py-3 active" data-t="road">🗺️ Feuille de route</button>
+  <button class="tab flex-1 py-3 text-slate-500" data-t="cards">🎴 Flashcards</button>
+  <button class="tab flex-1 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
+</nav>
+
+<main class="px-4 mt-4 max-w-xl mx-auto">
+  <section id="road" class="space-y-4"></section>
+
+  <section id="cards" class="hidden">
+    <div id="filters" class="flex gap-2 overflow-x-auto pb-3"></div>
+    <div id="cardList" class="space-y-4"></div>
+  </section>
+
+  <section id="ics" class="hidden">
+    <div class="bg-white rounded-2xl shadow p-4 space-y-4">
+      <h2 class="font-bold text-indigo-900">Rappel quotidien d'étude</h2>
+      <label class="block text-sm">Heure du rappel
+        <input id="icsTime" type="time" value="19:00" class="mt-1 w-full border rounded-lg p-2"></label>
+      <label class="block text-sm">Durée (minutes)
+        <input id="icsDur" type="number" min="5" max="180" value="20" class="mt-1 w-full border rounded-lg p-2"></label>
+      <label class="block text-sm">Jusqu'au (fin de répétition)
+        <input id="icsEnd" type="date" class="mt-1 w-full border rounded-lg p-2"></label>
+      <button id="icsBtn" class="w-full bg-indigo-900 text-white font-semibold py-3 rounded-xl">Télécharger le fichier .ics</button>
+      <p class="text-xs text-slate-500">Ouvre le fichier téléchargé pour l'ajouter à Google Calendar ou à l'agenda du téléphone.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ================== DONNÉES : FEUILLE DE ROUTE ================== */
+const ROADMAP = [
+  {m:"Novembre", t:"Hiragana", tasks:["Apprendre les 46 hiragana de base","Lire des mots simples en hiragana","Écrire les hiragana à la main","Quiz de reconnaissance (10 min/jour)"]},
+  {m:"Décembre", t:"Katakana", tasks:["Apprendre les 46 katakana","Dakuten, handakuten et petits kana","Lire des noms de plats en katakana","Quiz de reconnaissance hiragana + katakana"]},
+  {m:"Janvier", t:"Salutations & présentation", tasks:["Salutations de base (こんにちは, ありがとう…)","Se présenter (名前, 国, 旅行)","Particules は / が / を / に","Apprendre à demander poliment (〜をください)"]},
+  {m:"Février", t:"Chiffres, prix & heures", tasks:["Compter de 1 à 100","Les centaines, milliers et yens (円)","Dire l'heure et les dates","S'entraîner à comprendre un prix"]},
+  {m:"Mars", t:"Restaurant & achats", tasks:["Commander au restaurant","Allergies et préférences alimentaires","Demander un prix, payer par carte, détaxe","Jeu de rôle : conbini et izakaya"]},
+  {m:"Avril", t:"Transport & orientation", tasks:["Lire les panneaux de gare (駅, 出口, 乗り換え)","Acheter un billet / recharger une carte IC","Demander son chemin (左, 右, まっすぐ)","Écouter des annonces de train"]},
+  {m:"Mai", t:"Urgences & révision finale", tasks:["Phrases d'urgence (médecin, police, 119 / 110)","Réviser toutes les flashcards à « Maîtrisé »","Préparer une carte de phrases hors-ligne","Dernier jeu de rôle complet du voyage"]}
+];
+
+/* ================== DONNÉES : FLASHCARDS ================== */
+const CATS = ["Restauration","Transport","Achats","Orientation","Urgences"];
+const C = (cat, fr, ja, ro) => ({cat, fr, ja, ro});
+const CARDS = [
+  C("Restauration","Une table pour deux","二名です","nimei desu"),
+  C("Restauration","Le menu, s'il vous plaît","メニューをお願いします","menyū o onegai shimasu"),
+  C("Restauration","Je voudrais ceci","これをください","kore o kudasai"),
+  C("Restauration","De l'eau, s'il vous plaît","お水をください","omizu o kudasai"),
+  C("Restauration","Je ne mange pas de viande","肉は食べられません","niku wa taberaremasen"),
+  C("Restauration","J'ai une allergie","アレルギーがあります","arerugī ga arimasu"),
+  C("Restauration","L'addition, s'il vous plaît","お会計をお願いします","okaikei o onegai shimasu"),
+  C("Restauration","Merci pour le repas","ごちそうさまでした","gochisōsama deshita"),
+  C("Transport","Où est la gare ?","駅はどこですか","eki wa doko desu ka"),
+  C("Transport","Un billet pour Kyoto","京都までの切符をください","Kyōto made no kippu o kudasai"),
+  C("Transport","Quel quai ?","何番線ですか","nan-ban-sen desu ka"),
+  C("Transport","Ce train va-t-il à Osaka ?","この電車は大阪に行きますか","kono densha wa Ōsaka ni ikimasu ka"),
+  C("Transport","Arrêt de bus","バス停","basutei"),
+  C("Transport","Prochaine station","次の駅","tsugi no eki"),
+  C("Transport","Ici, s'il vous plaît (taxi)","ここまでお願いします","koko made onegai shimasu"),
+  C("Achats","Combien ça coûte ?","いくらですか","ikura desu ka"),
+  C("Achats","Puis-je payer par carte ?","カードは使えますか","kādo wa tsukaemasu ka"),
+  C("Achats","Détaxe possible ?","免税できますか","menzei dekimasu ka"),
+  C("Achats","Je regarde seulement","見ているだけです","miteiru dake desu"),
+  C("Achats","Avez-vous une autre taille ?","別のサイズはありますか","betsu no saizu wa arimasu ka"),
+  C("Achats","Je prends celui-ci","これにします","kore ni shimasu"),
+  C("Achats","Un sac, s'il vous plaît","袋をください","fukuro o kudasai"),
+  C("Orientation","Excusez-moi","すみません","sumimasen"),
+  C("Orientation","Où sont les toilettes ?","トイレはどこですか","toire wa doko desu ka"),
+  C("Orientation","À gauche","左","hidari"),
+  C("Orientation","À droite","右","migi"),
+  C("Orientation","Tout droit","まっすぐ","massugu"),
+  C("Orientation","Je suis perdu(e)","道に迷いました","michi ni mayoimashita"),
+  C("Orientation","Parlez-vous anglais ?","英語を話せますか","eigo o hanasemasu ka"),
+  C("Urgences","Au secours !","助けて！","tasukete!"),
+  C("Urgences","Appelez une ambulance (119)","救急車を呼んでください","kyūkyūsha o yonde kudasai"),
+  C("Urgences","Appelez la police (110)","警察を呼んでください","keisatsu o yonde kudasai"),
+  C("Urgences","J'ai besoin d'un médecin","医者が必要です","isha ga hitsuyō desu"),
+  C("Urgences","Où est l'hôpital ?","病院はどこですか","byōin wa doko desu ka"),
+  C("Urgences","J'ai perdu mon passeport","パスポートをなくしました","pasupōto o nakushimashita"),
+  C("Urgences","Je me sens mal","気分が悪いです","kibun ga warui desu")
+].map((c,i)=>({...c,id:i}));
+
+/* ================== ÉTAT & SAUVEGARDE (localStorage) ================== */
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let done = load("jp_tasks", {});        // {"m-t": true}
+let status = load("jp_cards", {});      // {id: "review" | "master"}
+let filter = "Tous";
+const $ = s => document.querySelector(s);
+
+/* ================== ONGLET 1 : FEUILLE DE ROUTE ================== */
+function renderRoad(){
+  $("#road").innerHTML = ROADMAP.map((mo,i)=>{
+    const n = mo.tasks.filter((_,j)=>done[`${i}-${j}`]).length;
+    return `<div class="bg-white rounded-2xl shadow p-4">
+      <div class="flex justify-between items-baseline">
+        <div><span class="text-xs text-pink-500 font-semibold uppercase">Mois ${i+1} · ${mo.m}</span>
+        <h2 class="font-bold text-indigo-900">${mo.t}</h2></div>
+        <span class="text-xs text-slate-500">${n}/${mo.tasks.length}</span></div>
+      <div class="mt-2 space-y-2">${mo.tasks.map((t,j)=>`
+        <label class="flex items-start gap-3 text-sm">
+          <input type="checkbox" data-k="${i}-${j}" ${done[`${i}-${j}`]?"checked":""} class="mt-0.5 w-5 h-5 accent-pink-400">
+          <span class="${done[`${i}-${j}`]?"line-through text-slate-400":""}">${t}</span></label>`).join("")}
+      </div></div>`;
+  }).join("");
+  updateProgress();
+}
+function updateProgress(){
+  const total = ROADMAP.reduce((a,m)=>a+m.tasks.length,0);
+  const n = Object.values(done).filter(Boolean).length;
+  const p = Math.round(n/total*100);
+  $("#pct").textContent = p+"%"; $("#bar").style.width = p+"%";
+}
+$("#road").addEventListener("change", e=>{
+  const k = e.target.dataset.k; if(!k) return;
+  done[k] = e.target.checked; save("jp_tasks", done); renderRoad();
+});
+
+/* ================== ONGLET 2 : FLASHCARDS + AUDIO ================== */
+function renderFilters(){
+  $("#filters").innerHTML = ["Tous",...CATS].map(c=>`<button data-f="${c}" class="shrink-0 px-3 py-1.5 rounded-full text-sm ${c===filter?"bg-indigo-900 text-white":"bg-white text-indigo-900 shadow"}">${c}</button>`).join("");
+}
+function renderCards(){
+  const list = CARDS.filter(c=>filter==="Tous"||c.cat===filter);
+  $("#cardList").innerHTML = list.map(c=>{
+    const s = status[c.id];
+    return `<div class="scene" data-id="${c.id}">
+      <div class="card">
+        <div class="face bg-white shadow flex flex-col items-center justify-center p-4 text-center border-l-4 ${s==="master"?"border-green-400":s==="review"?"border-pink-400":"border-indigo-200"}">
+          <span class="text-xs text-pink-500 font-semibold uppercase mb-2">${c.cat}</span>
+          <p class="text-lg font-semibold text-indigo-900">${c.fr}</p>
+          <span class="text-xs text-slate-400 mt-3">Touche pour retourner</span></div>
+        <div class="face back bg-indigo-900 text-white flex flex-col items-center justify-center p-4 text-center">
+          <p class="text-2xl font-bold" lang="ja">${c.ja}</p>
+          <p class="text-pink-300 text-sm mt-1">${c.ro}</p>
+          <div class="flex gap-2 mt-3">
+            <button data-a="speak" aria-label="Écouter" class="bg-white/15 px-3 py-1.5 rounded-full text-sm">🔊</button>
+            <button data-a="review" class="px-3 py-1.5 rounded-full text-sm ${s==="review"?"bg-pink-300 text-indigo-900":"bg-white/15"}">À revoir</button>
+            <button data-a="master" class="px-3 py-1.5 rounded-full text-sm ${s==="master"?"bg-green-300 text-indigo-900":"bg-white/15"}">Maîtrisé</button>
+          </div></div>
+      </div></div>`;
+  }).join("");
+}
+$("#filters").addEventListener("click", e=>{
+  const f = e.target.dataset.f; if(!f) return; filter = f; renderFilters(); renderCards();
+});
+$("#cardList").addEventListener("click", e=>{
+  const scene = e.target.closest(".scene"); if(!scene) return;
+  const id = +scene.dataset.id, a = e.target.dataset.a, card = scene.querySelector(".card");
+  if(!a){ card.classList.toggle("flipped"); return; }
+  if(a==="speak") return speak(CARDS[id].ja);
+  status[id] = status[id]===a ? undefined : a;   // re-cliquer annule
+  save("jp_cards", status);
+  const wasFlipped = card.classList.contains("flipped");
+  renderCards();
+  if(wasFlipped) $(`[data-id="${id}"] .card`).classList.add("flipped");
+});
+
+/* Synthèse vocale native (Web Speech API, voix japonaise) */
+let voices = [];
+const loadVoices = () => voices = speechSynthesis.getVoices();
+if("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function speak(text){
+  if(!("speechSynthesis" in window)) return alert("Synthèse vocale non disponible sur ce navigateur.");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "ja-JP"; u.rate = 0.85;
+  const v = voices.find(v=>v.lang.replace("_","-")==="ja-JP") || voices.find(v=>v.lang.startsWith("ja"));
+  if(v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
+const d = new Date(); 
+$("#icsEnd").value = `${d.getMonth()>4?d.getFullYear()+1:d.getFullYear()}-05-31`;
+const p2 = n => String(n).padStart(2,"0");
+const stamp = (dt,time=true) => `${dt.getFullYear()}${p2(dt.getMonth()+1)}${p2(dt.getDate())}` + (time?`T${p2(dt.getHours())}${p2(dt.getMinutes())}00`:"");
+$("#icsBtn").addEventListener("click", ()=>{
+  const [h,mi] = $("#icsTime").value.split(":").map(Number);
+  const dur = Math.max(5, +$("#icsDur").value||20);
+  const start = new Date(); start.setHours(h,mi,0,0);
+  if(start < new Date()) start.setDate(start.getDate()+1);
+  const end = new Date(start.getTime()+dur*60000);
+  const until = $("#icsEnd").value.replace(/-/g,"") + "T235959";
+  const ics = [
+    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Nihongo Tabi//FR","CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:nihongo-${Date.now()}@nihongo-tabi`,
+    `DTSTAMP:${stamp(new Date())}`,
+    `DTSTART:${stamp(start)}`,`DTEND:${stamp(end)}`,
+    `RRULE:FREQ=DAILY;UNTIL=${until}`,
+    "SUMMARY:📚 Étude du japonais 日本語",
+    "DESCRIPTION:Séance quotidienne : flashcards et module du mois.",
+    "BEGIN:VALARM","TRIGGER:PT0M","ACTION:DISPLAY","DESCRIPTION:Étude du japonais","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"
+  ].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"}));
+  a.download = "rappel-japonais.ics"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+});
+
+/* ================== NAVIGATION ================== */
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
+  b.classList.add("active"); b.classList.remove("text-slate-500");
+  ["road","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
+}));
+
+/* ================== PWA : MANIFESTE DYNAMIQUE ================== */
+function icon(size){
+  const c = document.createElement("canvas"); c.width=c.height=size;
+  const x = c.getContext("2d");
+  x.fillStyle="#1e2a5e"; x.fillRect(0,0,size,size);
+  x.fillStyle="#f4a7b9"; x.beginPath(); x.arc(size/2,size/2,size*.3,0,7); x.fill();
+  x.fillStyle="#fff"; x.font=`bold ${size*.3}px sans-serif`; x.textAlign="center"; x.textBaseline="middle";
+  x.fillText("日",size/2,size/2+size*.02);
+  return c.toDataURL("image/png");
+}
+const manifest = {
+  name:"Nihongo Tabi", short_name:"Nihongo", display:"standalone", lang:"fr",
+  start_url: location.href.split("#")[0], scope: location.href.split("#")[0].replace(/[^/]*$/,""),
+  background_color:"#f8f5fa", theme_color:"#1e2a5e",
+  icons:[{src:icon(192),sizes:"192x192",type:"image/png",purpose:"any"},{src:icon(512),sizes:"512x512",type:"image/png",purpose:"any"}]
+};
+const ml = document.createElement("link"); ml.rel="manifest";
+ml.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"}));
+document.head.appendChild(ml);
+
+/* Bouton « Installer l'application » */
+let deferred;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred=e; $("#installBtn").classList.remove("hidden"); });
+$("#installBtn").addEventListener("click", async ()=>{
+  if(!deferred) return; deferred.prompt(); await deferred.userChoice; deferred=null; $("#installBtn").classList.add("hidden");
+});
+window.addEventListener("appinstalled", ()=>$("#installBtn").classList.add("hidden"));
+
+/* ================== PWA : SERVICE WORKER ==================
+   Les navigateurs refusent d'enregistrer un Service Worker depuis une URL Blob :
+   le script doit être un fichier de même origine (HTTPS ou localhost).
+   On enregistre donc sw.js (fourni à côté d'index.html). */
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  navigator.serviceWorker.register("sw.js").catch(console.warn);
+}
+
+/* ================== INIT ================== */
+renderRoad(); renderFilters(); renderCards();
+</script>
+</body>
+</html>
