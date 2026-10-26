@@ -31,13 +31,26 @@
 
 <!-- NAVIGATION PAR ONGLETS -->
 <nav class="flex bg-white shadow-sm sticky top-0 z-10 text-sm">
-  <button class="tab flex-1 py-3 active" data-t="road">🗺️ Feuille de route</button>
-  <button class="tab flex-1 py-3 text-slate-500" data-t="cards">🎴 Flashcards</button>
+  <button class="tab flex-1 py-3 active" data-t="road">🗺️ Plan</button>
+  <button class="tab flex-1 py-3 text-slate-500" data-t="kana">あ Kana</button>
+  <button class="tab flex-1 py-3 text-slate-500" data-t="cards">🎴 Cartes</button>
   <button class="tab flex-1 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
 </nav>
 
 <main class="px-4 mt-4 max-w-xl mx-auto">
   <section id="road" class="space-y-4"></section>
+
+  <!-- ONGLET KANA : tableaux, audio, tracé, quiz -->
+  <section id="kana" class="hidden">
+    <div id="kHead" class="flex gap-2"></div>
+    <div class="flex justify-between items-center my-3 text-sm">
+      <span id="kCount" class="text-slate-600"></span>
+      <button data-quiz class="bg-pink-300 text-indigo-900 font-semibold px-3 py-1.5 rounded-full">🎯 Mini-quiz</button>
+    </div>
+    <div id="kQuiz"></div>
+    <div id="kGrid" class="grid grid-cols-5 gap-2"></div>
+    <p class="text-xs text-slate-400 mt-3">Touche un kana pour l'écouter, le tracer et le marquer.</p>
+  </section>
 
   <section id="cards" class="hidden">
     <div id="filters" class="flex gap-2 overflow-x-auto pb-3"></div>
@@ -59,6 +72,27 @@
   </section>
 </main>
 
+<!-- MODALE : détail d'un kana + zone de tracé -->
+<div id="modal" class="hidden fixed inset-0 z-20 bg-black/50 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl w-full max-w-xl p-4 pb-6 max-h-[95vh] overflow-y-auto">
+    <div class="flex items-center justify-between">
+      <div class="flex items-baseline gap-3"><span id="mCh" lang="ja" class="text-4xl font-bold text-indigo-900"></span><span id="mRo" class="text-pink-500 text-lg"></span></div>
+      <div class="flex gap-2"><button data-m="speak" class="bg-indigo-50 px-3 py-2 rounded-full">🔊</button><button data-m="close" class="bg-slate-100 px-3 py-2 rounded-full">✕</button></div>
+    </div>
+    <p class="text-xs text-slate-500 mt-3">Trace le caractère au doigt en suivant le modèle en filigrane :</p>
+    <div class="relative mx-auto mt-2 border-2 border-dashed border-indigo-200 rounded-2xl" style="width:300px;max-width:100%;aspect-ratio:1">
+      <div id="mGhost" lang="ja" class="absolute inset-0 flex items-center justify-center text-slate-300 pointer-events-none select-none" style="font-size:200px;opacity:.5"></div>
+      <canvas id="cv" width="300" height="300" class="absolute inset-0 w-full h-full" style="touch-action:none"></canvas>
+    </div>
+    <div class="flex gap-2 mt-3 text-sm">
+      <button data-m="clear" class="flex-1 py-2 rounded-xl bg-slate-100">Effacer</button>
+      <button data-m="ghost" class="flex-1 py-2 rounded-xl bg-slate-100">👁 Guide</button>
+      <button data-m="ok" class="flex-1 py-2 rounded-xl bg-slate-100">Acquis</button>
+      <button data-m="review" class="flex-1 py-2 rounded-xl bg-slate-100">À revoir</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================== DONNÉES : FEUILLE DE ROUTE ================== */
 const ROADMAP = [
@@ -72,7 +106,10 @@ const ROADMAP = [
 ];
 
 /* ================== DONNÉES : FLASHCARDS ================== */
-const CATS = ["Restauration","Transport","Achats","Orientation","Urgences"];
+const CATS = ["Transports & Gare","Restaurants & Nourriture","Hôtel & Logement","Achats & Shopping","Orientation & Urgences"];
+const [T,R,H,A,O] = CATS;
+// Anciennes catégories -> nouvelles (les ids des cartes existantes restent inchangés : progression conservée)
+const CATMAP = {Restauration:R, Transport:T, Achats:A, Orientation:O, Urgences:O};
 const C = (cat, fr, ja, ro) => ({cat, fr, ja, ro});
 const CARDS = [
   C("Restauration","Une table pour deux","二名です","nimei desu"),
@@ -111,7 +148,78 @@ const CARDS = [
   C("Urgences","Où est l'hôpital ?","病院はどこですか","byōin wa doko desu ka"),
   C("Urgences","J'ai perdu mon passeport","パスポートをなくしました","pasupōto o nakushimashita"),
   C("Urgences","Je me sens mal","気分が悪いです","kibun ga warui desu")
-].map((c,i)=>({...c,id:i}));
+,
+  /* ---- Transports & Gare ---- */
+  C(T,"Shinkansen (train à grande vitesse)","新幹線","shinkansen"),
+  C(T,"Aller simple","片道","katamichi"),
+  C(T,"Aller-retour","往復","ōfuku"),
+  C(T,"Quai","ホーム","hōmu"),
+  C(T,"Carte IC (Suica / Pasmo)","ICカード","ai-shī kādo"),
+  C(T,"Rechargez ma carte, s'il vous plaît","チャージをお願いします","chāji o onegai shimasu"),
+  C(T,"Le train est en retard","電車が遅れています","densha ga okureteimasu"),
+  C(T,"Correspondance","乗り換え","norikae"),
+  C(T,"Où dois-je changer ?","どこで乗り換えますか","doko de norikaemasu ka"),
+  C(T,"Place réservée","指定席","shiteiseki"),
+  C(T,"Place non réservée","自由席","jiyūseki"),
+  C(T,"Sortie","出口","deguchi"),
+  C(T,"Dernier train","終電","shūden"),
+  C(T,"Aéroport","空港","kūkō"),
+  C(T,"Consigne automatique","コインロッカー","koin rokkā"),
+  /* ---- Restaurants & Nourriture ---- */
+  C(R,"Je suis végétarien(ne)","ベジタリアンです","bejitarian desu"),
+  C(R,"Je suis allergique aux arachides","ピーナッツアレルギーです","pīnattsu arerugī desu"),
+  C(R,"Y a-t-il du porc dedans ?","豚肉は入っていますか","butaniku wa haitte imasu ka"),
+  C(R,"C'est délicieux","おいしいです","oishii desu"),
+  C(R,"Bon appétit (avant de manger)","いただきます","itadakimasu"),
+  C(R,"Je paie en espèces","現金で払います","genkin de haraimasu"),
+  C(R,"Du thé, s'il vous plaît","お茶をください","ocha o kudasai"),
+  C(R,"Une bière, s'il vous plaît","ビールをください","bīru o kudasai"),
+  C(R,"Pas épicé, s'il vous plaît","辛くしないでください","karaku shinai de kudasai"),
+  C(R,"Que me conseillez-vous ?","おすすめは何ですか","osusume wa nan desu ka"),
+  C(R,"Encore un(e), s'il vous plaît","もう一つください","mō hitotsu kudasai"),
+  C(R,"Additions séparées, s'il vous plaît","別々でお願いします","betsubetsu de onegai shimasu"),
+  C(R,"À emporter, s'il vous plaît","持ち帰りでお願いします","mochikaeri de onegai shimasu"),
+  /* ---- Hôtel & Logement ---- */
+  C(H,"J'ai une réservation au nom de…","（名前）で予約しています","(namae) de yoyaku shite imasu"),
+  C(H,"Check-in","チェックイン","chekkuin"),
+  C(H,"Check-out","チェックアウト","chekkuauto"),
+  C(H,"Puis-je laisser mes bagages ?","荷物を預かってもらえますか","nimotsu o azukatte moraemasu ka"),
+  C(H,"Quel est le mot de passe du Wi-Fi ?","Wi-Fiのパスワードは何ですか","waifai no pasuwādo wa nan desu ka"),
+  C(H,"À quelle heure est le petit-déjeuner ?","朝食は何時ですか","chōshoku wa nanji desu ka"),
+  C(H,"Une chambre pour deux nuits","二泊お願いします","nihaku onegai shimasu"),
+  C(H,"La climatisation ne marche pas","エアコンが動きません","eakon ga ugokimasen"),
+  C(H,"Une serviette en plus, s'il vous plaît","タオルをもう一枚ください","taoru o mō ichimai kudasai"),
+  C(H,"Clé","鍵","kagi"),
+  C(H,"Chambre","部屋","heya"),
+  /* ---- Achats & Shopping ---- */
+  C(A,"C'est trop cher","高すぎます","takasugimasu"),
+  C(A,"Puis-je l'essayer ?","試着してもいいですか","shichaku shite mo ii desu ka"),
+  C(A,"Comptoir de détaxe (tax-free)","免税カウンター","menzei kauntā"),
+  C(A,"Sac plastique","ビニール袋","binīru bukuro"),
+  C(A,"Pas besoin de sac","袋は要りません","fukuro wa irimasen"),
+  C(A,"Un paquet cadeau, s'il vous plaît","プレゼント用に包んでください","purezento-yō ni tsutsunde kudasai"),
+  C(A,"Y a-t-il moins cher ?","もっと安いのはありますか","motto yasui no wa arimasu ka"),
+  C(A,"Jusqu'à quelle heure êtes-vous ouvert ?","何時まで開いていますか","nanji made aite imasu ka"),
+  C(A,"Souvenir","お土産","omiyage"),
+  C(A,"Je voudrais celui-là","あれをください","are o kudasai"),
+  C(A,"Caisse","レジ","reji"),
+  /* ---- Orientation & Urgences ---- */
+  C(O,"Où est la station de métro ?","地下鉄の駅はどこですか","chikatetsu no eki wa doko desu ka"),
+  C(O,"Pouvez-vous me montrer sur la carte ?","地図で教えてもらえますか","chizu de oshiete moraemasu ka"),
+  C(O,"C'est loin ?","遠いですか","tōi desu ka"),
+  C(O,"Combien de minutes à pied ?","歩いて何分ですか","aruite nanpun desu ka"),
+  C(O,"Feu de signalisation","信号","shingō"),
+  C(O,"Poste de police de quartier","交番","kōban"),
+  C(O,"On m'a volé mon sac","かばんを盗まれました","kaban o nusumaremashita"),
+  C(O,"Je ne comprends pas","わかりません","wakarimasen"),
+  C(O,"Pouvez-vous répéter ?","もう一度お願いします","mō ichido onegai shimasu"),
+  C(O,"Plus lentement, s'il vous plaît","ゆっくりお願いします","yukkuri onegai shimasu"),
+  C(O,"Pharmacie","薬局","yakkyoku"),
+  C(O,"J'ai de la fièvre","熱があります","netsu ga arimasu"),
+  C(O,"Tremblement de terre","地震","jishin"),
+  C(O,"Au feu !","火事だ！","kaji da!"),
+  C(O,"Où est l'ambassade de France ?","フランス大使館はどこですか","Furansu taishikan wa doko desu ka")
+].map((c,i)=>({...c,cat:CATMAP[c.cat]||c.cat,id:i}));
 
 /* ================== ÉTAT & SAUVEGARDE (localStorage) ================== */
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
@@ -203,6 +311,77 @@ function speak(text){
   speechSynthesis.speak(u);
 }
 
+/* ================== ONGLET KANA ================== */
+// Grille gojūon : 11 lignes x 5 colonnes ("・" = case vide)
+const KR = ["a i u e o","ka ki ku ke ko","sa shi su se so","ta chi tsu te to","na ni nu ne no","ha hi fu he ho","ma mi mu me mo","ya - yu - yo","ra ri ru re ro","wa - - - wo","n - - - -"];
+const KROWS = {
+  hira:["あいうえお","かきくけこ","さしすせそ","たちつてと","なにぬねの","はひふへほ","まみむめも","や・ゆ・よ","らりるれろ","わ・・・を","ん・・・・"],
+  kata:["アイウエオ","カキクケコ","サシスセソ","タチツテト","ナニヌネノ","ハヒフヘホ","マミムメモ","ヤ・ユ・ヨ","ラリルレロ","ワ・・・ヲ","ン・・・・"]
+};
+const KANA = {};
+for(const k in KROWS){ KANA[k]=[]; KROWS[k].forEach((row,i)=>[...row].forEach((ch,j)=>KANA[k].push(ch==="・"?null:{ch,ro:KR[i].split(" ")[j]}))); }
+let kstatus = load("jp_kana", {});   // {"あ": "ok" | "review"}
+let kset = "hira", cur = null, qAns = null;
+
+function renderKana(){
+  const list = KANA[kset], real = list.filter(Boolean);
+  $("#kHead").innerHTML = [["hira","Hiragana ひらがな"],["kata","Katakana カタカナ"]].map(([k,l])=>
+    `<button data-ks="${k}" class="flex-1 py-2 rounded-xl text-sm ${k===kset?"bg-indigo-900 text-white":"bg-white shadow text-indigo-900"}">${l}</button>`).join("");
+  $("#kCount").textContent = `Acquis : ${real.filter(k=>kstatus[k.ch]==="ok").length}/${real.length}`;
+  $("#kGrid").innerHTML = list.map(k=>k?
+    `<button data-ch="${k.ch}" class="rounded-xl py-2 shadow text-center ${kstatus[k.ch]==="ok"?"bg-green-100":kstatus[k.ch]==="review"?"bg-pink-100":"bg-white"}"><div class="text-2xl" lang="ja">${k.ch}</div><div class="text-xs text-slate-500">${k.ro}</div></button>`:"<div></div>").join("");
+}
+/* Mini-quiz : associer un son (rōmaji + audio) au bon kana */
+function quiz(){
+  const pool = KANA[kset].filter(Boolean).sort(()=>Math.random()-.5).slice(0,4);
+  qAns = pool[0];
+  const opts = [...pool].sort(()=>Math.random()-.5);
+  $("#kQuiz").innerHTML = `<div class="bg-white rounded-2xl shadow p-4 mb-3 text-center">
+    <p class="text-sm">Quel kana se lit <b>${qAns.ro}</b> ? <button data-qs class="ml-1">🔊</button></p>
+    <div class="grid grid-cols-4 gap-2 mt-3">${opts.map(o=>`<button data-qa="${o.ch}" lang="ja" class="bg-indigo-50 rounded-xl py-3 text-2xl">${o.ch}</button>`).join("")}</div>
+    <p id="qMsg" class="text-sm mt-2 h-5"></p></div>`;
+}
+$("#kana").addEventListener("click", e=>{
+  const t = e.target.closest("button"); if(!t) return; const d = t.dataset;
+  if(d.ks){ kset = d.ks; $("#kQuiz").innerHTML = ""; renderKana(); }
+  else if(d.ch) openKana(d.ch);
+  else if("quiz" in d) quiz();
+  else if("qs" in d) speak(qAns.ch);
+  else if(d.qa){
+    if(d.qa===qAns.ch){ $("#qMsg").textContent="✔ Bravo !"; speak(qAns.ch); setTimeout(quiz,1200); }
+    else { t.classList.add("bg-pink-200"); $("#qMsg").textContent="✘ Essaie encore"; }
+  }
+});
+
+/* Zone de tracé (canvas, doigt ou souris) */
+const cv = $("#cv"), cx = cv.getContext("2d");
+cx.lineWidth = 10; cx.lineCap = cx.lineJoin = "round"; cx.strokeStyle = "#1e2a5e";
+let drawing = false;
+const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width, (e.clientY-r.top)*cv.height/r.height]; };
+cv.addEventListener("pointerdown", e=>{ drawing=true; cv.setPointerCapture(e.pointerId); cx.beginPath(); cx.moveTo(...pos(e)); cx.lineTo(...pos(e)); cx.stroke(); });
+cv.addEventListener("pointermove", e=>{ if(drawing){ cx.lineTo(...pos(e)); cx.stroke(); } });
+["pointerup","pointercancel"].forEach(t=>cv.addEventListener(t, ()=>drawing=false));
+
+function openKana(ch){
+  cur = KANA[kset].find(k=>k&&k.ch===ch);
+  $("#mCh").textContent = $("#mGhost").textContent = cur.ch; $("#mRo").textContent = cur.ro;
+  cx.clearRect(0,0,300,300); markBtns();
+  $("#modal").classList.remove("hidden"); speak(cur.ch);
+}
+function markBtns(){
+  const s = kstatus[cur.ch];
+  $('[data-m="ok"]').className = "flex-1 py-2 rounded-xl "+(s==="ok"?"bg-green-300":"bg-slate-100");
+  $('[data-m="review"]').className = "flex-1 py-2 rounded-xl "+(s==="review"?"bg-pink-300":"bg-slate-100");
+}
+$("#modal").addEventListener("click", e=>{
+  const a = e.target.dataset.m;
+  if(e.target.id==="modal"||a==="close") return $("#modal").classList.add("hidden");
+  if(a==="speak") speak(cur.ch);
+  if(a==="clear") cx.clearRect(0,0,300,300);
+  if(a==="ghost") $("#mGhost").classList.toggle("invisible");
+  if(a==="ok"||a==="review"){ kstatus[cur.ch] = kstatus[cur.ch]===a ? undefined : a; save("jp_kana", kstatus); renderKana(); markBtns(); }
+});
+
 /* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
 const d = new Date(); 
 $("#icsEnd").value = `${d.getMonth()>4?d.getFullYear()+1:d.getFullYear()}-05-31`;
@@ -237,7 +416,7 @@ $("#icsBtn").addEventListener("click", ()=>{
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
   b.classList.add("active"); b.classList.remove("text-slate-500");
-  ["road","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
+  ["road","kana","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
 }));
 
 /* ================== PWA : MANIFESTE DYNAMIQUE ================== */
@@ -277,7 +456,7 @@ if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostn
 }
 
 /* ================== INIT ================== */
-renderRoad(); renderFilters(); renderCards();
+renderRoad(); renderKana(); renderFilters(); renderCards();
 </script>
 </body>
 </html>
