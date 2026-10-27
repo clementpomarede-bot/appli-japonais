@@ -31,7 +31,8 @@
 
 <!-- NAVIGATION PAR ONGLETS -->
 <nav class="flex overflow-x-auto bg-white shadow-sm sticky top-0 z-10 text-sm">
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 active" data-t="road">🗺️ Plan</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 active" data-t="home">🏠 Aujourd'hui</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="road">🗺️ Plan</button>
   <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="guide">ℹ️ Guide</button>
   <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="kana">あ Kana</button>
   <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="nums">🔢 Nombres</button>
@@ -40,7 +41,20 @@
 </nav>
 
 <main class="px-4 mt-4 max-w-xl mx-auto">
-  <section id="road" class="space-y-4"></section>
+  <!-- ACCUEIL : mot du jour + exercice du jour -->
+  <section id="home" class="space-y-4">
+    <div id="dWord"></div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <div class="flex justify-between items-start gap-2">
+        <div><span id="dMonth" class="text-xs text-pink-500 font-semibold uppercase"></span>
+          <h2 class="font-bold text-indigo-900">Exercice du jour</h2></div>
+        <div id="dStats" class="text-right text-xs text-slate-500 shrink-0"></div>
+      </div>
+      <div id="dEx" class="mt-3"></div>
+    </div>
+  </section>
+
+  <section id="road" class="hidden space-y-4"></section>
 
   <!-- ONGLET KANA : tableaux, audio, tracé, quiz -->
   <section id="kana" class="hidden">
@@ -517,6 +531,126 @@ $("#nums").addEventListener("click", e=>{
   }
 });
 
+/* ================== ACCUEIL : MOT DU JOUR + EXERCICE DU JOUR ================== */
+const pad = x => String(x).padStart(2,"0");
+const dkey = (dt=new Date()) => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+const dayNum = (dt=new Date()) => Math.floor(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())/864e5);
+// Mois JS -> index du plan (Nov=0 … Mai=6) ; hors plan (juin–octobre) : aperçu du mois 1
+const PLANMAP = {10:0, 11:1, 0:2, 1:3, 2:4, 3:5, 4:6};
+const mIdx = () => PLANMAP[new Date().getMonth()] ?? 0;
+
+let daily = load("jp_daily", {});   // {"2026-11-03": 2} : date -> score ; présence = exercice validé ce jour-là
+let homeKey = "", dq = null, rg = Math.random;
+
+// Générateur pseudo-aléatoire à graine (mulberry32) : même exercice toute la journée
+function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const ri = (a,b) => a+Math.floor(rg()*(b-a+1));
+const sh = arr => arr.map(x=>[rg(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const pick = (arr,k) => sh(arr).slice(0,k);
+
+const GREET = [["Bonjour","こんにちは","konnichiwa"],["Bonsoir","こんばんは","konbanwa"],["Bonjour (le matin)","おはようございます","ohayō gozaimasu"],["Merci","ありがとう","arigatō"],["Au revoir","さようなら","sayōnara"],["Excusez-moi / pardon","すみません","sumimasen"],["Enchanté(e)","はじめまして","hajimemashite"],["Oui","はい","hai"],["Non","いいえ","iie"],["Bonne nuit","おやすみなさい","oyasumi nasai"],["Je m'appelle…","（名前）です","(namae) desu"],["Je viens de France","フランスから来ました","Furansu kara kimashita"]].map(([fr,ja,ro])=>({fr,ja,ro}));
+
+// --- Générateurs de questions : {q, opts[], a (index), say, rev, big} ---
+function qKana(set){
+  const [a,...o] = pick(KANA[set].filter(Boolean),4), opts = sh([a,...o]);
+  return rg()<.5
+    ? {q:`Comment se lit <span lang="ja" class="text-3xl font-bold">${a.ch}</span> ?`, opts:opts.map(x=>x.ro), a:opts.indexOf(a), say:a.ch, rev:`${a.ch} = ${a.ro}`}
+    : {q:`Quel kana se lit « ${a.ro} » ?`, opts:opts.map(x=>x.ch), a:opts.indexOf(a), say:a.ch, rev:`${a.ro} = ${a.ch}`, big:true};
+}
+function qVocab(pool){
+  const [a,...o] = pick(pool,4), opts = sh([a,...o]);
+  return rg()<.5
+    ? {q:`Comment dit-on « ${a.fr} » ?`, opts:opts.map(x=>`<span lang="ja" class="font-bold">${x.ja}</span><br><span class="text-xs text-pink-500">${x.ro}</span>`), a:opts.indexOf(a), say:a.ja, rev:`${a.ja} (${a.ro})`}
+    : {q:`<span lang="ja" class="text-2xl font-bold">${a.ja}</span><br><span class="text-sm text-pink-500">${a.ro}</span><br>Que signifie cette expression ?`, opts:opts.map(x=>x.fr), a:opts.indexOf(a), say:a.ja, rev:a.fr};
+}
+function qNum(){
+  const price = rg()<.6, step = price?10:1, lo = price?10:11, hi = price?99990:999;
+  const n = price ? ri(10,1999)*10 : ri(11,999), disp = price ? fmt(n) : String(n);
+  const set = new Set([n]); let g=0;
+  while(set.size<4 && g++<300){ const x=n+step*ri(-6,6); if(x>=lo && x<=hi) set.add(x); }
+  const opts = sh([...set]), w = nw(n,price);
+  return {q:`Comment se lit <b class="text-2xl">${disp}</b> ?`, opts:opts.map(x=>nw(x,price).r), a:opts.indexOf(n), say:w.k, rev:`${w.j} · ${w.r}`};
+}
+// Un type d'exercice par mois du plan
+const DAILY = [
+  ()=>qKana("hira"),                                              // Mois 1 : Hiragana
+  ()=>qKana("kata"),                                              // Mois 2 : Katakana
+  ()=>qVocab(GREET),                                              // Mois 3 : Salutations
+  qNum,                                                           // Mois 4 : Chiffres & prix
+  ()=>qVocab(CARDS.filter(c=>c.cat===R||c.cat===A)),              // Mois 5 : Restaurant & achats
+  ()=>qVocab(CARDS.filter(c=>c.cat===T||c.cat===O)),              // Mois 6 : Transport & orientation
+  ()=>qVocab(CARDS)                                               // Mois 7 : Urgences & révision
+];
+function newDq(practice){
+  rg = mulberry(dayNum()*7 + mIdx() + (practice ? 1+Math.floor(Math.random()*1e6) : 0));
+  dq = {qs:[0,1,2].map(()=>DAILY[mIdx()]()), i:0, ok:0, practice, lock:false};
+  rg = Math.random;
+}
+function streak(){
+  let n=0; const dt=new Date();
+  if(!(dkey(dt) in daily)) dt.setDate(dt.getDate()-1);
+  while(dkey(dt) in daily){ n++; dt.setDate(dt.getDate()-1); }
+  return n;
+}
+function renderWord(){
+  const dt = new Date(), w = CARDS[(dayNum(dt)*37) % CARDS.length];   // rotation sur toute la liste, sans répétition rapprochée
+  $("#dWord").innerHTML = `<div class="bg-gradient-to-br from-indigo-900 to-indigo-700 text-white rounded-2xl shadow p-5 text-center">
+    <p class="text-xs uppercase tracking-wide text-pink-300 font-semibold">🌸 Mot courant du jour · ${dt.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</p>
+    <p class="text-4xl font-bold mt-3" lang="ja">${w.ja}</p>
+    <p class="text-pink-300 mt-1">${w.ro}</p>
+    <p class="text-lg mt-2">${w.fr}</p>
+    <button data-hw aria-label="Écouter" class="mt-3 bg-white/15 px-5 py-2 rounded-full text-lg">🔊 Écouter</button>
+    <p class="text-[11px] text-indigo-200 mt-2">${w.cat}</p></div>`;
+}
+function renderStats(){
+  const n = streak(), today = dkey() in daily;
+  $("#dStats").innerHTML = `<div class="text-base font-bold text-indigo-900">🔥 ${n} jour${n>1?"s":""}</div><div>${today?"✔ validé aujourd'hui":"à faire aujourd'hui"}</div><div>${Object.keys(daily).length} jour(s) au total</div>`;
+}
+function renderEx(){
+  const box = $("#dEx");
+  if(dq.i >= dq.qs.length){
+    box.innerHTML = `<p class="text-lg font-bold text-indigo-900">${dq.ok>=2?"🎉":"💪"} ${dq.ok}/${dq.qs.length}</p>
+      <p class="text-sm mt-1">${dq.practice?"Entraînement terminé.":"Exercice du jour validé ! Reviens demain pour continuer ta série."}</p>
+      <button data-dre class="mt-3 bg-indigo-50 text-indigo-900 font-semibold rounded-full px-4 py-2 text-sm">Refaire pour s'entraîner</button>`;
+    return;
+  }
+  const q = dq.qs[dq.i];
+  box.innerHTML = `<p class="text-xs text-slate-400">Question ${dq.i+1}/${dq.qs.length}${dq.practice?" · entraînement":""}</p>
+    <p class="mt-1">${q.q}</p>
+    <div class="grid gap-2 mt-3">${q.opts.map((o,i)=>`<button data-dopt="${i}" class="bg-indigo-50 rounded-xl py-2 px-3 ${q.big?"text-2xl text-center":"text-sm text-left"}" ${q.big?'lang="ja"':""}>${o}</button>`).join("")}</div>
+    <p id="dFb" class="text-sm mt-3"></p>`;
+}
+$("#home").addEventListener("click", e=>{
+  const t = e.target.closest("button"); if(!t) return; const d = t.dataset;
+  if("hw" in d) speak(CARDS[(dayNum()*37) % CARDS.length].ja);
+  else if("dre" in d){ newDq(true); renderEx(); }
+  else if("dnext" in d){
+    dq.i++; dq.lock = false;
+    if(dq.i>=dq.qs.length && !dq.practice && !(dkey() in daily)){ daily[dkey()] = dq.ok; save("jp_daily", daily); }
+    renderEx(); renderStats();
+  }
+  else if(d.dopt!==undefined){
+    if(dq.lock) return; dq.lock = true;
+    const q = dq.qs[dq.i], ok = +d.dopt===q.a; if(ok) dq.ok++;
+    document.querySelectorAll("[data-dopt]").forEach(b=>{
+      if(+b.dataset.dopt===q.a){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-green-200"); }
+      else if(b===t){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-pink-200"); }
+    });
+    $("#dFb").innerHTML = `${ok?"✔ Bravo !":"✘ Raté"} <span lang="ja">${q.rev}</span><br><button data-dnext class="mt-2 bg-pink-300 text-indigo-900 font-semibold rounded-full px-4 py-1.5">${dq.i===dq.qs.length-1?"Terminer":"Suivant ➜"}</button>`;
+    speak(q.say);
+  }
+});
+function initHome(){
+  homeKey = dkey();
+  const i = mIdx(), inPlan = new Date().getMonth() in PLANMAP;
+  $("#dMonth").textContent = `${inPlan?"":"Aperçu · "}Mois ${i+1} · ${ROADMAP[i].m} — ${ROADMAP[i].t}`;
+  renderWord(); newDq(false);
+  if(homeKey in daily){ dq.i = dq.qs.length; dq.ok = daily[homeKey]; }   // déjà validé aujourd'hui
+  renderEx(); renderStats();
+}
+// Nouveau jour si l'appli reste ouverte / revient au premier plan
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && dkey()!==homeKey) initHome(); });
+
 /* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
 const d = new Date(); 
 $("#icsEnd").value = `${d.getMonth()>4?d.getFullYear()+1:d.getFullYear()}-05-31`;
@@ -551,7 +685,7 @@ $("#icsBtn").addEventListener("click", ()=>{
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
   b.classList.add("active"); b.classList.remove("text-slate-500");
-  ["road","guide","kana","nums","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
+  ["home","road","guide","kana","nums","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
 }));
 
 /* ================== PWA : MANIFESTE DYNAMIQUE ================== */
@@ -591,7 +725,7 @@ if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostn
 }
 
 /* ================== INIT ================== */
-renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv();
+renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv(); initHome();
 </script>
 </body>
 </html>

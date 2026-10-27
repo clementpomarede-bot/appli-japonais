@@ -1,5 +1,5 @@
 // Service Worker : cache-first pour un fonctionnement 100 % hors-ligne
-const CACHE = "nihongo-tabi-v3";
+const CACHE = "nihongo-tabi-v4";
 const TAILWIND = "https://cdn.tailwindcss.com";
 
 self.addEventListener("install", e => {
