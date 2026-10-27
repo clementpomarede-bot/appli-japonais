@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2a5e">
+<title>Nihongo Tabi 日本語旅</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#f8f5fa;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+  /* Effet flip 3D des flashcards */
+  .scene{perspective:1000px}
+  .card{position:relative;height:200px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+  .card.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:1rem}
+  .back{transform:rotateY(180deg)}
+  .tab.active{color:#1e2a5e;border-bottom:3px solid #f4a7b9;font-weight:700}
+</style>
+</head>
+<body class="text-slate-800 pb-8">
+
+<!-- EN-TÊTE + PROGRESSION GLOBALE -->
+<header class="bg-indigo-900 text-white px-4 pt-4 pb-5 rounded-b-3xl shadow">
+  <div class="flex justify-between items-center">
+    <h1 class="text-xl font-bold">🌸 Nihongo Tabi <span class="text-pink-300">日本語旅</span></h1>
+    <button id="installBtn" class="hidden text-xs bg-pink-300 text-indigo-900 font-semibold px-3 py-1.5 rounded-full">Installer l'application</button>
+  </div>
+  <div class="mt-3 text-sm flex justify-between"><span>Progression globale</span><span id="pct">0%</span></div>
+  <div class="h-3 bg-indigo-800 rounded-full mt-1 overflow-hidden"><div id="bar" class="h-full bg-pink-300 transition-all" style="width:0"></div></div>
+</header>
+
+<!-- NAVIGATION PAR ONGLETS -->
+<nav class="flex overflow-x-auto bg-white shadow-sm sticky top-0 z-10 text-sm">
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 active" data-t="road">🗺️ Plan</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="guide">ℹ️ Guide</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="kana">あ Kana</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="nums">🔢 Nombres</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="cards">🎴 Cartes</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
+</nav>
+
+<main class="px-4 mt-4 max-w-xl mx-auto">
+  <section id="road" class="space-y-4"></section>
+
+  <!-- ONGLET KANA : tableaux, audio, tracé, quiz -->
+  <section id="kana" class="hidden">
+    <div id="kHead" class="flex gap-2"></div>
+    <div class="flex justify-between items-center my-3 text-sm">
+      <span id="kCount" class="text-slate-600"></span>
+      <button data-quiz class="bg-pink-300 text-indigo-900 font-semibold px-3 py-1.5 rounded-full">🎯 Mini-quiz</button>
+    </div>
+    <div id="kQuiz"></div>
+    <div id="kGrid" class="grid grid-cols-5 gap-2"></div>
+    <p class="text-xs text-slate-400 mt-3">Touche un kana pour l'écouter, le tracer et le marquer.</p>
+  </section>
+
+  <!-- ONGLET GUIDE : hiragana / katakana / kanji -->
+  <section id="guide" class="hidden space-y-4">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">ひらがな Hiragana</h2>
+      <p class="text-sm mt-1">46 signes arrondis. C'est l'alphabet de la <b>grammaire</b> : particules (は, を, が, の, に), terminaisons des verbes et adjectifs (食べ<b>ます</b>) et mots japonais sans kanji (ありがとう, おいしい). Premier alphabet appris par les enfants, et celui qui sert aussi de lecture aux kanji (furigana).</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">カタカナ Katakana</h2>
+      <p class="text-sm mt-1">46 signes plus anguleux. Ils servent pour les <b>mots étrangers ou empruntés</b> (ホテル, コーヒー, ビール, タクシー), les <b>prénoms et pays étrangers</b> (フランス, マリー) et les <b>onomatopées</b> (ワンワン, ドキドキ). Très utiles en voyage : de nombreux plats, boissons et enseignes y sont écrits. Le trait ー allonge la voyelle (コーヒー = kōhī).</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">漢字 Kanji</h2>
+      <p class="text-sm mt-1">Caractères d'origine chinoise qui portent un <b>sens</b> : environ 2 000 sont d'usage courant. Ils écrivent les noms et la racine des verbes et adjectifs (駅 gare, 出口 sortie, 入口 entrée, 円 yen). Un kanji a souvent plusieurs lectures. Pour le voyage, il suffit de reconnaître une vingtaine de signes clés.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">Pourquoi les trois ensemble ?</h2>
+      <p class="text-lg mt-2 leading-loose" lang="ja"><span class="text-indigo-900 font-bold">私</span><span class="text-pink-500">は</span><span class="text-emerald-600 font-bold">コーヒー</span><span class="text-pink-500">を</span><span class="text-indigo-900 font-bold">飲</span><span class="text-pink-500">みます</span>。</p>
+      <p class="text-xs text-slate-500">watashi wa kōhī o nomimasu : « Je bois du café »</p>
+      <p class="text-sm mt-2"><span class="text-indigo-900 font-bold">Kanji</span> = les mots porteurs de sens (私 je, 飲 boire).<br><span class="text-pink-500 font-bold">Hiragana</span> = la grammaire (は, を) et la fin du verbe (みます).<br><span class="text-emerald-600 font-bold">Katakana</span> = le mot étranger (コーヒー).</p>
+      <p class="text-sm mt-2">Le japonais s'écrit sans espaces : l'alternance des trois écritures sert à repérer où les mots commencent et finissent, et permet de lire plus vite. Le rōmaji (alphabet latin) n'apparaît guère que sur les panneaux touristiques.</p>
+    </div>
+  </section>
+
+  <!-- ONGLET NOMBRES : référence, convertisseur, mini-jeu -->
+  <section id="nums" class="hidden space-y-4">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900 mb-2">Les nombres clés</h2>
+      <div id="nRef" class="grid grid-cols-4 gap-2"></div>
+      <p class="text-xs text-slate-500 mt-2">4 = よん / し, 7 = なな / しち, 9 = きゅう / く. 万 (man) = 10 000 : 3万 = 30 000 (sanman). Touche un nombre pour l'écouter.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">Convertisseur</h2>
+      <div class="flex gap-2 mt-2"><input id="nIn" type="number" inputmode="numeric" min="1" max="99999" placeholder="ex : 3480" class="flex-1 border rounded-lg p-2"><button id="nGo" class="bg-indigo-900 text-white px-4 rounded-lg">🔊</button></div>
+      <div id="nOut" class="mt-2 text-sm"></div>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">🎯 Mini-jeu</h2>
+      <div id="nLvl" class="flex flex-wrap gap-2 mt-2"></div>
+      <div id="nMode" class="flex flex-wrap gap-2 mt-2"></div>
+      <div id="nQ" class="mt-3 text-center"></div>
+    </div>
+  </section>
+
+  <section id="cards" class="hidden">
+    <div id="filters" class="flex gap-2 overflow-x-auto pb-3"></div>
+    <div id="cardList" class="space-y-4"></div>
+  </section>
+
+  <section id="ics" class="hidden">
+    <div class="bg-white rounded-2xl shadow p-4 space-y-4">
+      <h2 class="font-bold text-indigo-900">Rappel quotidien d'étude</h2>
+      <label class="block text-sm">Heure du rappel
+        <input id="icsTime" type="time" value="19:00" class="mt-1 w-full border rounded-lg p-2"></label>
+      <label class="block text-sm">Durée (minutes)
+        <input id="icsDur" type="number" min="5" max="180" value="20" class="mt-1 w-full border rounded-lg p-2"></label>
+      <label class="block text-sm">Jusqu'au (fin de répétition)
+        <input id="icsEnd" type="date" class="mt-1 w-full border rounded-lg p-2"></label>
+      <button id="icsBtn" class="w-full bg-indigo-900 text-white font-semibold py-3 rounded-xl">Télécharger le fichier .ics</button>
+      <p class="text-xs text-slate-500">Ouvre le fichier téléchargé pour l'ajouter à Google Calendar ou à l'agenda du téléphone.</p>
+    </div>
+  </section>
+</main>
+
+<!-- MODALE : détail d'un kana + zone de tracé -->
+<div id="modal" class="hidden fixed inset-0 z-20 bg-black/50 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl w-full max-w-xl p-4 pb-6 max-h-[95vh] overflow-y-auto">
+    <div class="flex items-center justify-between">
+      <div class="flex items-baseline gap-3"><span id="mCh" lang="ja" class="text-4xl font-bold text-indigo-900"></span><span id="mRo" class="text-pink-500 text-lg"></span></div>
+      <div class="flex gap-2"><button data-m="speak" class="bg-indigo-50 px-3 py-2 rounded-full">🔊</button><button data-m="close" class="bg-slate-100 px-3 py-2 rounded-full">✕</button></div>
+    </div>
+    <p class="text-xs text-slate-500 mt-3">Trace le caractère au doigt en suivant le modèle en filigrane :</p>
+    <div class="relative mx-auto mt-2 border-2 border-dashed border-indigo-200 rounded-2xl" style="width:300px;max-width:100%;aspect-ratio:1">
+      <div id="mGhost" lang="ja" class="absolute inset-0 flex items-center justify-center text-slate-300 pointer-events-none select-none" style="font-size:200px;opacity:.5"></div>
+      <canvas id="cv" width="300" height="300" class="absolute inset-0 w-full h-full" style="touch-action:none"></canvas>
+    </div>
+    <div class="flex gap-2 mt-3 text-sm">
+      <button data-m="clear" class="flex-1 py-2 rounded-xl bg-slate-100">Effacer</button>
+      <button data-m="ghost" class="flex-1 py-2 rounded-xl bg-slate-100">👁 Guide</button>
+      <button data-m="ok" class="flex-1 py-2 rounded-xl bg-slate-100">Acquis</button>
+      <button data-m="review" class="flex-1 py-2 rounded-xl bg-slate-100">À revoir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================== DONNÉES : FEUILLE DE ROUTE ================== */
+const ROADMAP = [
+  {m:"Novembre", t:"Hiragana", tasks:["Apprendre les 46 hiragana de base","Lire des mots simples en hiragana","Écrire les hiragana à la main","Quiz de reconnaissance (10 min/jour)"]},
+  {m:"Décembre", t:"Katakana", tasks:["Apprendre les 46 katakana","Dakuten, handakuten et petits kana","Lire des noms de plats en katakana","Quiz de reconnaissance hiragana + katakana"]},
+  {m:"Janvier", t:"Salutations & présentation", tasks:["Salutations de base (こんにちは, ありがとう…)","Se présenter (名前, 国, 旅行)","Particules は / が / を / に","Apprendre à demander poliment (〜をください)"]},
+  {m:"Février", t:"Chiffres, prix & heures", tasks:["Compter de 1 à 100","Les centaines, milliers et yens (円)","Dire l'heure et les dates","S'entraîner à comprendre un prix"]},
+  {m:"Mars", t:"Restaurant & achats", tasks:["Commander au restaurant","Allergies et préférences alimentaires","Demander un prix, payer par carte, détaxe","Jeu de rôle : conbini et izakaya"]},
+  {m:"Avril", t:"Transport & orientation", tasks:["Lire les panneaux de gare (駅, 出口, 乗り換え)","Acheter un billet / recharger une carte IC","Demander son chemin (左, 右, まっすぐ)","Écouter des annonces de train"]},
+  {m:"Mai", t:"Urgences & révision finale", tasks:["Phrases d'urgence (médecin, police, 119 / 110)","Réviser toutes les flashcards à « Maîtrisé »","Préparer une carte de phrases hors-ligne","Dernier jeu de rôle complet du voyage"]}
+];
+
+/* ================== DONNÉES : FLASHCARDS ================== */
+const CATS = ["Transports & Gare","Restaurants & Nourriture","Hôtel & Logement","Achats & Shopping","Orientation & Urgences"];
+const [T,R,H,A,O] = CATS;
+// Anciennes catégories -> nouvelles (les ids des cartes existantes restent inchangés : progression conservée)
+const CATMAP = {Restauration:R, Transport:T, Achats:A, Orientation:O, Urgences:O};
+const C = (cat, fr, ja, ro) => ({cat, fr, ja, ro});
+const CARDS = [
+  C("Restauration","Une table pour deux","二名です","nimei desu"),
+  C("Restauration","Le menu, s'il vous plaît","メニューをお願いします","menyū o onegai shimasu"),
+  C("Restauration","Je voudrais ceci","これをください","kore o kudasai"),
+  C("Restauration","De l'eau, s'il vous plaît","お水をください","omizu o kudasai"),
+  C("Restauration","Je ne mange pas de viande","肉は食べられません","niku wa taberaremasen"),
+  C("Restauration","J'ai une allergie","アレルギーがあります","arerugī ga arimasu"),
+  C("Restauration","L'addition, s'il vous plaît","お会計をお願いします","okaikei o onegai shimasu"),
+  C("Restauration","Merci pour le repas","ごちそうさまでした","gochisōsama deshita"),
+  C("Transport","Où est la gare ?","駅はどこですか","eki wa doko desu ka"),
+  C("Transport","Un billet pour Kyoto","京都までの切符をください","Kyōto made no kippu o kudasai"),
+  C("Transport","Quel quai ?","何番線ですか","nan-ban-sen desu ka"),
+  C("Transport","Ce train va-t-il à Osaka ?","この電車は大阪に行きますか","kono densha wa Ōsaka ni ikimasu ka"),
+  C("Transport","Arrêt de bus","バス停","basutei"),
+  C("Transport","Prochaine station","次の駅","tsugi no eki"),
+  C("Transport","Ici, s'il vous plaît (taxi)","ここまでお願いします","koko made onegai shimasu"),
+  C("Achats","Combien ça coûte ?","いくらですか","ikura desu ka"),
+  C("Achats","Puis-je payer par carte ?","カードは使えますか","kādo wa tsukaemasu ka"),
+  C("Achats","Détaxe possible ?","免税できますか","menzei dekimasu ka"),
+  C("Achats","Je regarde seulement","見ているだけです","miteiru dake desu"),
+  C("Achats","Avez-vous une autre taille ?","別のサイズはありますか","betsu no saizu wa arimasu ka"),
+  C("Achats","Je prends celui-ci","これにします","kore ni shimasu"),
+  C("Achats","Un sac, s'il vous plaît","袋をください","fukuro o kudasai"),
+  C("Orientation","Excusez-moi","すみません","sumimasen"),
+  C("Orientation","Où sont les toilettes ?","トイレはどこですか","toire wa doko desu ka"),
+  C("Orientation","À gauche","左","hidari"),
+  C("Orientation","À droite","右","migi"),
+  C("Orientation","Tout droit","まっすぐ","massugu"),
+  C("Orientation","Je suis perdu(e)","道に迷いました","michi ni mayoimashita"),
+  C("Orientation","Parlez-vous anglais ?","英語を話せますか","eigo o hanasemasu ka"),
+  C("Urgences","Au secours !","助けて！","tasukete!"),
+  C("Urgences","Appelez une ambulance (119)","救急車を呼んでください","kyūkyūsha o yonde kudasai"),
+  C("Urgences","Appelez la police (110)","警察を呼んでください","keisatsu o yonde kudasai"),
+  C("Urgences","J'ai besoin d'un médecin","医者が必要です","isha ga hitsuyō desu"),
+  C("Urgences","Où est l'hôpital ?","病院はどこですか","byōin wa doko desu ka"),
+  C("Urgences","J'ai perdu mon passeport","パスポートをなくしました","pasupōto o nakushimashita"),
+  C("Urgences","Je me sens mal","気分が悪いです","kibun ga warui desu")
+,
+  /* ---- Transports & Gare ---- */
+  C(T,"Shinkansen (train à grande vitesse)","新幹線","shinkansen"),
+  C(T,"Aller simple","片道","katamichi"),
+  C(T,"Aller-retour","往復","ōfuku"),
+  C(T,"Quai","ホーム","hōmu"),
+  C(T,"Carte IC (Suica / Pasmo)","ICカード","ai-shī kādo"),
+  C(T,"Rechargez ma carte, s'il vous plaît","チャージをお願いします","chāji o onegai shimasu"),
+  C(T,"Le train est en retard","電車が遅れています","densha ga okureteimasu"),
+  C(T,"Correspondance","乗り換え","norikae"),
+  C(T,"Où dois-je changer ?","どこで乗り換えますか","doko de norikaemasu ka"),
+  C(T,"Place réservée","指定席","shiteiseki"),
+  C(T,"Place non réservée","自由席","jiyūseki"),
+  C(T,"Sortie","出口","deguchi"),
+  C(T,"Dernier train","終電","shūden"),
+  C(T,"Aéroport","空港","kūkō"),
+  C(T,"Consigne automatique","コインロッカー","koin rokkā"),
+  /* ---- Restaurants & Nourriture ---- */
+  C(R,"Je suis végétarien(ne)","ベジタリアンです","bejitarian desu"),
+  C(R,"Je suis allergique aux arachides","ピーナッツアレルギーです","pīnattsu arerugī desu"),
+  C(R,"Y a-t-il du porc dedans ?","豚肉は入っていますか","butaniku wa haitte imasu ka"),
+  C(R,"C'est délicieux","おいしいです","oishii desu"),
+  C(R,"Bon appétit (avant de manger)","いただきます","itadakimasu"),
+  C(R,"Je paie en espèces","現金で払います","genkin de haraimasu"),
+  C(R,"Du thé, s'il vous plaît","お茶をください","ocha o kudasai"),
+  C(R,"Une bière, s'il vous plaît","ビールをください","bīru o kudasai"),
+  C(R,"Pas épicé, s'il vous plaît","辛くしないでください","karaku shinai de kudasai"),
+  C(R,"Que me conseillez-vous ?","おすすめは何ですか","osusume wa nan desu ka"),
+  C(R,"Encore un(e), s'il vous plaît","もう一つください","mō hitotsu kudasai"),
+  C(R,"Additions séparées, s'il vous plaît","別々でお願いします","betsubetsu de onegai shimasu"),
+  C(R,"À emporter, s'il vous plaît","持ち帰りでお願いします","mochikaeri de onegai shimasu"),
+  /* ---- Hôtel & Logement ---- */
+  C(H,"J'ai une réservation au nom de…","（名前）で予約しています","(namae) de yoyaku shite imasu"),
+  C(H,"Check-in","チェックイン","chekkuin"),
+  C(H,"Check-out","チェックアウト","chekkuauto"),
+  C(H,"Puis-je laisser mes bagages ?","荷物を預かってもらえますか","nimotsu o azukatte moraemasu ka"),
+  C(H,"Quel est le mot de passe du Wi-Fi ?","Wi-Fiのパスワードは何ですか","waifai no pasuwādo wa nan desu ka"),
+  C(H,"À quelle heure est le petit-déjeuner ?","朝食は何時ですか","chōshoku wa nanji desu ka"),
+  C(H,"Une chambre pour deux nuits","二泊お願いします","nihaku onegai shimasu"),
+  C(H,"La climatisation ne marche pas","エアコンが動きません","eakon ga ugokimasen"),
+  C(H,"Une serviette en plus, s'il vous plaît","タオルをもう一枚ください","taoru o mō ichimai kudasai"),
+  C(H,"Clé","鍵","kagi"),
+  C(H,"Chambre","部屋","heya"),
+  /* ---- Achats & Shopping ---- */
+  C(A,"C'est trop cher","高すぎます","takasugimasu"),
+  C(A,"Puis-je l'essayer ?","試着してもいいですか","shichaku shite mo ii desu ka"),
+  C(A,"Comptoir de détaxe (tax-free)","免税カウンター","menzei kauntā"),
+  C(A,"Sac plastique","ビニール袋","binīru bukuro"),
+  C(A,"Pas besoin de sac","袋は要りません","fukuro wa irimasen"),
+  C(A,"Un paquet cadeau, s'il vous plaît","プレゼント用に包んでください","purezento-yō ni tsutsunde kudasai"),
+  C(A,"Y a-t-il moins cher ?","もっと安いのはありますか","motto yasui no wa arimasu ka"),
+  C(A,"Jusqu'à quelle heure êtes-vous ouvert ?","何時まで開いていますか","nanji made aite imasu ka"),
+  C(A,"Souvenir","お土産","omiyage"),
+  C(A,"Je voudrais celui-là","あれをください","are o kudasai"),
+  C(A,"Caisse","レジ","reji"),
+  /* ---- Orientation & Urgences ---- */
+  C(O,"Où est la station de métro ?","地下鉄の駅はどこですか","chikatetsu no eki wa doko desu ka"),
+  C(O,"Pouvez-vous me montrer sur la carte ?","地図で教えてもらえますか","chizu de oshiete moraemasu ka"),
+  C(O,"C'est loin ?","遠いですか","tōi desu ka"),
+  C(O,"Combien de minutes à pied ?","歩いて何分ですか","aruite nanpun desu ka"),
+  C(O,"Feu de signalisation","信号","shingō"),
+  C(O,"Poste de police de quartier","交番","kōban"),
+  C(O,"On m'a volé mon sac","かばんを盗まれました","kaban o nusumaremashita"),
+  C(O,"Je ne comprends pas","わかりません","wakarimasen"),
+  C(O,"Pouvez-vous répéter ?","もう一度お願いします","mō ichido onegai shimasu"),
+  C(O,"Plus lentement, s'il vous plaît","ゆっくりお願いします","yukkuri onegai shimasu"),
+  C(O,"Pharmacie","薬局","yakkyoku"),
+  C(O,"J'ai de la fièvre","熱があります","netsu ga arimasu"),
+  C(O,"Tremblement de terre","地震","jishin"),
+  C(O,"Au feu !","火事だ！","kaji da!"),
+  C(O,"Où est l'ambassade de France ?","フランス大使館はどこですか","Furansu taishikan wa doko desu ka")
+].map((c,i)=>({...c,cat:CATMAP[c.cat]||c.cat,id:i}));
+
+/* ================== ÉTAT & SAUVEGARDE (localStorage) ================== */
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let done = load("jp_tasks", {});        // {"m-t": true}
+let status = load("jp_cards", {});      // {id: "review" | "master"}
+let filter = "Tous";
+let dir = load("jp_dir", "fr");   // sens des cartes : fr = FR→JP, jp = JP→FR (japonais + rōmaji en face avant)
+const $ = s => document.querySelector(s);
+
+/* ================== ONGLET 1 : FEUILLE DE ROUTE ================== */
+function renderRoad(){
+  $("#road").innerHTML = ROADMAP.map((mo,i)=>{
+    const n = mo.tasks.filter((_,j)=>done[`${i}-${j}`]).length;
+    return `<div class="bg-white rounded-2xl shadow p-4">
+      <div class="flex justify-between items-baseline">
+        <div><span class="text-xs text-pink-500 font-semibold uppercase">Mois ${i+1} · ${mo.m}</span>
+        <h2 class="font-bold text-indigo-900">${mo.t}</h2></div>
+        <span class="text-xs text-slate-500">${n}/${mo.tasks.length}</span></div>
+      <div class="mt-2 space-y-2">${mo.tasks.map((t,j)=>`
+        <label class="flex items-start gap-3 text-sm">
+          <input type="checkbox" data-k="${i}-${j}" ${done[`${i}-${j}`]?"checked":""} class="mt-0.5 w-5 h-5 accent-pink-400">
+          <span class="${done[`${i}-${j}`]?"line-through text-slate-400":""}">${t}</span></label>`).join("")}
+      </div></div>`;
+  }).join("");
+  updateProgress();
+}
+function updateProgress(){
+  const total = ROADMAP.reduce((a,m)=>a+m.tasks.length,0);
+  const n = Object.values(done).filter(Boolean).length;
+  const p = Math.round(n/total*100);
+  $("#pct").textContent = p+"%"; $("#bar").style.width = p+"%";
+}
+$("#road").addEventListener("change", e=>{
+  const k = e.target.dataset.k; if(!k) return;
+  done[k] = e.target.checked; save("jp_tasks", done); renderRoad();
+});
+
+/* ================== ONGLET 2 : FLASHCARDS + AUDIO ================== */
+function renderFilters(){
+  $("#filters").innerHTML = `<button data-dir class="shrink-0 px-3 py-1.5 rounded-full text-sm bg-pink-300 text-indigo-900 font-semibold">${dir==="fr"?"FR → 日本語":"日本語 → FR"}</button>` + ["Tous",...CATS].map(c=>`<button data-f="${c}" class="shrink-0 px-3 py-1.5 rounded-full text-sm ${c===filter?"bg-indigo-900 text-white":"bg-white text-indigo-900 shadow"}">${c}</button>`).join("");
+}
+function renderCards(){
+  const list = CARDS.filter(c=>filter==="Tous"||c.cat===filter);
+  $("#cardList").innerHTML = list.map(c=>{
+    const s = status[c.id], jp = dir==="jp";
+    // Face avant : français, ou japonais + rōmaji (plus petit, juste dessous) + audio
+    const front = jp
+      ? `<p class="text-3xl font-bold text-indigo-900" lang="ja">${c.ja}</p><p class="text-sm text-pink-500 mt-1">${c.ro}</p><button data-a="speak" aria-label="Écouter" class="mt-3 bg-indigo-50 px-3 py-1.5 rounded-full text-sm">🔊</button>`
+      : `<p class="text-lg font-semibold text-indigo-900">${c.fr}</p>`;
+    const back = jp
+      ? `<p class="text-lg font-semibold">${c.fr}</p>`
+      : `<p class="text-2xl font-bold" lang="ja">${c.ja}</p><p class="text-pink-300 text-base mt-1">${c.ro}</p>`;
+    return `<div class="scene" data-id="${c.id}">
+      <div class="card">
+        <div class="face bg-white shadow flex flex-col items-center justify-center p-4 text-center border-l-4 ${s==="master"?"border-green-400":s==="review"?"border-pink-400":"border-indigo-200"}">
+          <span class="text-xs text-pink-500 font-semibold uppercase mb-2">${c.cat}</span>
+          ${front}
+          <span class="text-xs text-slate-400 mt-2">Touche pour retourner</span></div>
+        <div class="face back bg-indigo-900 text-white flex flex-col items-center justify-center p-4 text-center">
+          ${back}
+          <div class="flex gap-2 mt-3">
+            <button data-a="speak" aria-label="Écouter" class="bg-white/15 px-3 py-1.5 rounded-full text-sm">🔊</button>
+            <button data-a="review" class="px-3 py-1.5 rounded-full text-sm ${s==="review"?"bg-pink-300 text-indigo-900":"bg-white/15"}">À revoir</button>
+            <button data-a="master" class="px-3 py-1.5 rounded-full text-sm ${s==="master"?"bg-green-300 text-indigo-900":"bg-white/15"}">Maîtrisé</button>
+          </div></div>
+      </div></div>`;
+  }).join("");
+}
+$("#filters").addEventListener("click", e=>{
+  if("dir" in e.target.dataset){ dir = dir==="fr"?"jp":"fr"; save("jp_dir", dir); renderFilters(); renderCards(); return; }
+  const f = e.target.dataset.f; if(!f) return; filter = f; renderFilters(); renderCards();
+});
+$("#cardList").addEventListener("click", e=>{
+  const scene = e.target.closest(".scene"); if(!scene) return;
+  const id = +scene.dataset.id, a = e.target.dataset.a, card = scene.querySelector(".card");
+  if(!a){ card.classList.toggle("flipped"); return; }
+  if(a==="speak") return speak(CARDS[id].ja);
+  status[id] = status[id]===a ? undefined : a;   // re-cliquer annule
+  save("jp_cards", status);
+  const wasFlipped = card.classList.contains("flipped");
+  renderCards();
+  if(wasFlipped) $(`[data-id="${id}"] .card`).classList.add("flipped");
+});
+
+/* Synthèse vocale native (Web Speech API, voix japonaise) */
+let voices = [];
+const loadVoices = () => voices = speechSynthesis.getVoices();
+if("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function speak(text){
+  if(!("speechSynthesis" in window)) return alert("Synthèse vocale non disponible sur ce navigateur.");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "ja-JP"; u.rate = 0.85;
+  const v = voices.find(v=>v.lang.replace("_","-")==="ja-JP") || voices.find(v=>v.lang.startsWith("ja"));
+  if(v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ================== ONGLET KANA ================== */
+// Grille gojūon : 11 lignes x 5 colonnes ("・" = case vide)
+const KR = ["a i u e o","ka ki ku ke ko","sa shi su se so","ta chi tsu te to","na ni nu ne no","ha hi fu he ho","ma mi mu me mo","ya - yu - yo","ra ri ru re ro","wa - - - wo","n - - - -"];
+const KROWS = {
+  hira:["あいうえお","かきくけこ","さしすせそ","たちつてと","なにぬねの","はひふへほ","まみむめも","や・ゆ・よ","らりるれろ","わ・・・を","ん・・・・"],
+  kata:["アイウエオ","カキクケコ","サシスセソ","タチツテト","ナニヌネノ","ハヒフヘホ","マミムメモ","ヤ・ユ・ヨ","ラリルレロ","ワ・・・ヲ","ン・・・・"]
+};
+const KANA = {};
+for(const k in KROWS){ KANA[k]=[]; KROWS[k].forEach((row,i)=>[...row].forEach((ch,j)=>KANA[k].push(ch==="・"?null:{ch,ro:KR[i].split(" ")[j]}))); }
+let kstatus = load("jp_kana", {});   // {"あ": "ok" | "review"}
+let kset = "hira", cur = null, qAns = null;
+
+function renderKana(){
+  const list = KANA[kset], real = list.filter(Boolean);
+  $("#kHead").innerHTML = [["hira","Hiragana ひらがな"],["kata","Katakana カタカナ"]].map(([k,l])=>
+    `<button data-ks="${k}" class="flex-1 py-2 rounded-xl text-sm ${k===kset?"bg-indigo-900 text-white":"bg-white shadow text-indigo-900"}">${l}</button>`).join("");
+  $("#kCount").textContent = `Acquis : ${real.filter(k=>kstatus[k.ch]==="ok").length}/${real.length}`;
+  $("#kGrid").innerHTML = list.map(k=>k?
+    `<button data-ch="${k.ch}" class="rounded-xl py-2 shadow text-center ${kstatus[k.ch]==="ok"?"bg-green-100":kstatus[k.ch]==="review"?"bg-pink-100":"bg-white"}"><div class="text-2xl" lang="ja">${k.ch}</div><div class="text-xs text-slate-500">${k.ro}</div></button>`:"<div></div>").join("");
+}
+/* Mini-quiz : associer un son (rōmaji + audio) au bon kana */
+function quiz(){
+  const pool = KANA[kset].filter(Boolean).sort(()=>Math.random()-.5).slice(0,4);
+  qAns = pool[0];
+  const opts = [...pool].sort(()=>Math.random()-.5);
+  $("#kQuiz").innerHTML = `<div class="bg-white rounded-2xl shadow p-4 mb-3 text-center">
+    <p class="text-sm">Quel kana se lit <b>${qAns.ro}</b> ? <button data-qs class="ml-1">🔊</button></p>
+    <div class="grid grid-cols-4 gap-2 mt-3">${opts.map(o=>`<button data-qa="${o.ch}" lang="ja" class="bg-indigo-50 rounded-xl py-3 text-2xl">${o.ch}</button>`).join("")}</div>
+    <p id="qMsg" class="text-sm mt-2 h-5"></p></div>`;
+}
+$("#kana").addEventListener("click", e=>{
+  const t = e.target.closest("button"); if(!t) return; const d = t.dataset;
+  if(d.ks){ kset = d.ks; $("#kQuiz").innerHTML = ""; renderKana(); }
+  else if(d.ch) openKana(d.ch);
+  else if("quiz" in d) quiz();
+  else if("qs" in d) speak(qAns.ch);
+  else if(d.qa){
+    if(d.qa===qAns.ch){ $("#qMsg").textContent="✔ Bravo !"; speak(qAns.ch); setTimeout(quiz,1200); }
+    else { t.classList.add("bg-pink-200"); $("#qMsg").textContent="✘ Essaie encore"; }
+  }
+});
+
+/* Zone de tracé (canvas, doigt ou souris) */
+const cv = $("#cv"), cx = cv.getContext("2d");
+cx.lineWidth = 10; cx.lineCap = cx.lineJoin = "round"; cx.strokeStyle = "#1e2a5e";
+let drawing = false;
+const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width, (e.clientY-r.top)*cv.height/r.height]; };
+cv.addEventListener("pointerdown", e=>{ drawing=true; cv.setPointerCapture(e.pointerId); cx.beginPath(); cx.moveTo(...pos(e)); cx.lineTo(...pos(e)); cx.stroke(); });
+cv.addEventListener("pointermove", e=>{ if(drawing){ cx.lineTo(...pos(e)); cx.stroke(); } });
+["pointerup","pointercancel"].forEach(t=>cv.addEventListener(t, ()=>drawing=false));
+
+function openKana(ch){
+  cur = KANA[kset].find(k=>k&&k.ch===ch);
+  $("#mCh").textContent = $("#mGhost").textContent = cur.ch; $("#mRo").textContent = cur.ro;
+  cx.clearRect(0,0,300,300); markBtns();
+  $("#modal").classList.remove("hidden"); speak(cur.ch);
+}
+function markBtns(){
+  const s = kstatus[cur.ch];
+  $('[data-m="ok"]').className = "flex-1 py-2 rounded-xl "+(s==="ok"?"bg-green-300":"bg-slate-100");
+  $('[data-m="review"]').className = "flex-1 py-2 rounded-xl "+(s==="review"?"bg-pink-300":"bg-slate-100");
+}
+$("#modal").addEventListener("click", e=>{
+  const a = e.target.dataset.m;
+  if(e.target.id==="modal"||a==="close") return $("#modal").classList.add("hidden");
+  if(a==="speak") speak(cur.ch);
+  if(a==="clear") cx.clearRect(0,0,300,300);
+  if(a==="ghost") $("#mGhost").classList.toggle("invisible");
+  if(a==="ok"||a==="review"){ kstatus[cur.ch] = kstatus[cur.ch]===a ? undefined : a; save("jp_kana", kstatus); renderKana(); markBtns(); }
+});
+
+/* ================== ONGLET NOMBRES ================== */
+const NK="いち に さん よん ご ろく なな はち きゅう".split(" "), NR="ichi ni san yon go roku nana hachi kyū".split(" "), NJ="一二三四五六七八九";
+const HK=["ひゃく","にひゃく","さんびゃく","よんひゃく","ごひゃく","ろっぴゃく","ななひゃく","はっぴゃく","きゅうひゃく"];
+const HR=["hyaku","nihyaku","sanbyaku","yonhyaku","gohyaku","roppyaku","nanahyaku","happyaku","kyūhyaku"];
+const SK=["せん","にせん","さんぜん","よんせん","ごせん","ろくせん","ななせん","はっせん","きゅうせん"];
+const SR=["sen","nisen","sanzen","yonsen","gosen","rokusen","nanasen","hassen","kyūsen"];
+/* Nombre (1 à 99 999) -> {k: kana, r: rōmaji, j: kanji}. yen=true ajoute 円 */
+function nw(n, yen){
+  const P=[], m=Math.floor(n/10000), t=Math.floor(n%10000/1000), h=Math.floor(n%1000/100), u=Math.floor(n%100/10), o=n%10;
+  if(m) P.push([NK[m-1]+"まん", NR[m-1]+"man", NJ[m-1]+"万"]);
+  if(t) P.push([SK[t-1], SR[t-1], (t>1?NJ[t-1]:"")+"千"]);
+  if(h) P.push([HK[h-1], HR[h-1], (h>1?NJ[h-1]:"")+"百"]);
+  if(u) P.push([(u>1?NK[u-1]:"")+"じゅう", (u>1?NR[u-1]:"")+"jū", (u>1?NJ[u-1]:"")+"十"]);
+  if(o) P.push([NK[o-1], NR[o-1], NJ[o-1]]);
+  if(yen) P.push(["えん","en","円"]);
+  return {k:P.map(x=>x[0]).join(""), r:P.map(x=>x[1]).join(" "), j:P.map(x=>x[2]).join("")};
+}
+const fmt = n => n.toLocaleString("fr-FR")+" ¥";
+const rnd = (a,b) => a+Math.floor(Math.random()*(b-a+1));
+
+// Tableau de référence
+$("#nRef").innerHTML = [1,2,3,4,5,6,7,8,9,10,100,1000,10000].map(n=>{const w=nw(n);
+  return `<button data-n="${n}" class="rounded-xl bg-indigo-50 py-2"><div class="text-xl" lang="ja">${w.j}</div><div class="text-xs">${w.k}</div><div class="text-xs text-pink-500">${w.r}</div><div class="text-[10px] text-slate-400">${n.toLocaleString("fr-FR")}</div></button>`}).join("");
+
+// Convertisseur libre
+function conv(){
+  const n = Math.floor(+$("#nIn").value);
+  if(!(n>=1 && n<=99999)){ $("#nOut").innerHTML='<span class="text-slate-400">Entre un nombre de 1 à 99 999</span>'; return; }
+  const w = nw(n);
+  $("#nOut").innerHTML = `<p class="text-xl" lang="ja">${w.j}</p><p>${w.k}</p><p class="text-pink-500">${w.r}</p>`;
+}
+$("#nIn").addEventListener("input", conv);
+$("#nGo").addEventListener("click", ()=>{ const n=Math.floor(+$("#nIn").value); if(n>=1&&n<=99999) speak(nw(n).k); });
+
+// Mini-jeu
+const LV=[["10","1–10"],["999","11–999"],["price","Prix ¥"],["add","Addition ¥"]];
+const MD=[["read","👁 Lire → mot"],["hear","👂 Écouter → chiffre"]];
+let nLvl="10", nMode="read", nq=null, nScore={ok:0,n:0};
+function nCtrl(){
+  const b=(id,list,cur)=>list.map(([k,l])=>`<button data-${id}="${k}" class="px-3 py-1.5 rounded-full text-xs ${k===cur?"bg-indigo-900 text-white":"bg-indigo-50 text-indigo-900"}">${l}</button>`).join("");
+  $("#nLvl").innerHTML=b("lv",LV,nLvl); $("#nMode").innerHTML=b("md",MD,nMode);
+}
+function nQuiz(auto){
+  let n, disp, step=1, yen=false, lo=1, hi=10;
+  if(nLvl==="10"){ n=rnd(1,10); disp=String(n); }
+  else if(nLvl==="999"){ n=rnd(11,999); disp=String(n); lo=11; hi=999; }
+  else if(nLvl==="price"){ n=rnd(10,1999)*10; disp=fmt(n); yen=true; step=10; lo=10; hi=99990; }
+  else { const a=rnd(10,300)*10, b=rnd(5,200)*10; n=a+b; disp=fmt(a)+" + "+fmt(b); yen=true; step=10; lo=20; hi=99990; }
+  const set=new Set([n]); let g=0;
+  while(set.size<4 && g++<300){ const d=n+step*rnd(-6,6); if(d>=lo && d<=hi) set.add(d); }
+  const opts=[...set].sort(()=>Math.random()-.5);
+  nq={n,yen,done:false};
+  const read = nMode==="read";
+  const head = read
+    ? `<p class="text-3xl font-bold text-indigo-900">${disp}${nLvl==="add"?" = ?":""}</p><p class="text-xs text-slate-500">Choisis la bonne lecture</p>`
+    : `<button data-nqs class="text-4xl bg-indigo-50 rounded-full px-5 py-3">🔊</button><p class="text-xs text-slate-500 mt-1">Quel nombre entends-tu ?</p>`;
+  $("#nQ").innerHTML = head + `<div class="grid grid-cols-1 gap-2 mt-3 text-sm">${opts.map(o=>
+    `<button data-nqa="${o}" class="bg-indigo-50 rounded-xl py-2 px-2">${read?nw(o,yen).r:(yen?fmt(o):o)}</button>`).join("")}</div>
+    <p id="nFb" class="text-sm mt-3"></p><p id="nScore" class="text-xs text-slate-400 mt-1">Score : ${nScore.ok}/${nScore.n}</p>`;
+  if(!read && auto) speak(nw(n,yen).k);
+}
+$("#nums").addEventListener("click", e=>{
+  const t=e.target.closest("button"); if(!t) return; const d=t.dataset;
+  if(d.n) speak(nw(+d.n).k);
+  else if(d.lv){ nLvl=d.lv; nCtrl(); nQuiz(true); }
+  else if(d.md){ nMode=d.md; nCtrl(); nQuiz(true); }
+  else if("nqs" in d) speak(nw(nq.n,nq.yen).k);
+  else if("nnext" in d) nQuiz(true);
+  else if(d.nqa){
+    if(nq.done) return; nq.done=true; nScore.n++;
+    const ok = +d.nqa===nq.n; if(ok) nScore.ok++;
+    document.querySelectorAll("[data-nqa]").forEach(b=>{
+      if(+b.dataset.nqa===nq.n){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-green-200"); }
+      else if(b===t){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-pink-200"); }
+    });
+    const w=nw(nq.n,nq.yen);
+    $("#nFb").innerHTML = `${ok?"✔ Bravo !":"✘ Raté"} <span lang="ja">${w.j}</span> · ${w.k} · <span class="text-pink-500">${w.r}</span><br><button data-nnext class="mt-2 bg-pink-300 text-indigo-900 font-semibold rounded-full px-4 py-1.5">Suivant ➜</button>`;
+    $("#nScore").textContent = `Score : ${nScore.ok}/${nScore.n}`;
+    speak(w.k);
+  }
+});
+
+/* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
+const d = new Date(); 
+$("#icsEnd").value = `${d.getMonth()>4?d.getFullYear()+1:d.getFullYear()}-05-31`;
+const p2 = n => String(n).padStart(2,"0");
+const stamp = (dt,time=true) => `${dt.getFullYear()}${p2(dt.getMonth()+1)}${p2(dt.getDate())}` + (time?`T${p2(dt.getHours())}${p2(dt.getMinutes())}00`:"");
+$("#icsBtn").addEventListener("click", ()=>{
+  const [h,mi] = $("#icsTime").value.split(":").map(Number);
+  const dur = Math.max(5, +$("#icsDur").value||20);
+  const start = new Date(); start.setHours(h,mi,0,0);
+  if(start < new Date()) start.setDate(start.getDate()+1);
+  const end = new Date(start.getTime()+dur*60000);
+  const until = $("#icsEnd").value.replace(/-/g,"") + "T235959";
+  const ics = [
+    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Nihongo Tabi//FR","CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:nihongo-${Date.now()}@nihongo-tabi`,
+    `DTSTAMP:${stamp(new Date())}`,
+    `DTSTART:${stamp(start)}`,`DTEND:${stamp(end)}`,
+    `RRULE:FREQ=DAILY;UNTIL=${until}`,
+    "SUMMARY:📚 Étude du japonais 日本語",
+    "DESCRIPTION:Séance quotidienne : flashcards et module du mois.",
+    "BEGIN:VALARM","TRIGGER:PT0M","ACTION:DISPLAY","DESCRIPTION:Étude du japonais","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"
+  ].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"}));
+  a.download = "rappel-japonais.ics"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+});
+
+/* ================== NAVIGATION ================== */
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
+  b.classList.add("active"); b.classList.remove("text-slate-500");
+  ["road","guide","kana","nums","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
+}));
+
+/* ================== PWA : MANIFESTE DYNAMIQUE ================== */
+function icon(size){
+  const c = document.createElement("canvas"); c.width=c.height=size;
+  const x = c.getContext("2d");
+  x.fillStyle="#1e2a5e"; x.fillRect(0,0,size,size);
+  x.fillStyle="#f4a7b9"; x.beginPath(); x.arc(size/2,size/2,size*.3,0,7); x.fill();
+  x.fillStyle="#fff"; x.font=`bold ${size*.3}px sans-serif`; x.textAlign="center"; x.textBaseline="middle";
+  x.fillText("日",size/2,size/2+size*.02);
+  return c.toDataURL("image/png");
+}
+const manifest = {
+  name:"Nihongo Tabi", short_name:"Nihongo", display:"standalone", lang:"fr",
+  start_url: location.href.split("#")[0], scope: location.href.split("#")[0].replace(/[^/]*$/,""),
+  background_color:"#f8f5fa", theme_color:"#1e2a5e",
+  icons:[{src:icon(192),sizes:"192x192",type:"image/png",purpose:"any"},{src:icon(512),sizes:"512x512",type:"image/png",purpose:"any"}]
+};
+const ml = document.createElement("link"); ml.rel="manifest";
+ml.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"}));
+document.head.appendChild(ml);
+
+/* Bouton « Installer l'application » */
+let deferred;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred=e; $("#installBtn").classList.remove("hidden"); });
+$("#installBtn").addEventListener("click", async ()=>{
+  if(!deferred) return; deferred.prompt(); await deferred.userChoice; deferred=null; $("#installBtn").classList.add("hidden");
+});
+window.addEventListener("appinstalled", ()=>$("#installBtn").classList.add("hidden"));
+
+/* ================== PWA : SERVICE WORKER ==================
+   Les navigateurs refusent d'enregistrer un Service Worker depuis une URL Blob :
+   le script doit être un fichier de même origine (HTTPS ou localhost).
+   On enregistre donc sw.js (fourni à côté d'index.html). */
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  navigator.serviceWorker.register("sw.js").catch(console.warn);
+}
+
+/* ================== INIT ================== */
+renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv();
+</script>
+</body>
+</html>
