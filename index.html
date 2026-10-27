@@ -10,7 +10,7 @@
   body{background:#f8f5fa;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
   /* Effet flip 3D des flashcards */
   .scene{perspective:1000px}
-  .card{position:relative;height:170px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+  .card{position:relative;height:200px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
   .card.flipped{transform:rotateY(180deg)}
   .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:1rem}
   .back{transform:rotateY(180deg)}
@@ -30,11 +30,13 @@
 </header>
 
 <!-- NAVIGATION PAR ONGLETS -->
-<nav class="flex bg-white shadow-sm sticky top-0 z-10 text-sm">
-  <button class="tab flex-1 py-3 active" data-t="road">🗺️ Plan</button>
-  <button class="tab flex-1 py-3 text-slate-500" data-t="kana">あ Kana</button>
-  <button class="tab flex-1 py-3 text-slate-500" data-t="cards">🎴 Cartes</button>
-  <button class="tab flex-1 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
+<nav class="flex overflow-x-auto bg-white shadow-sm sticky top-0 z-10 text-sm">
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 active" data-t="road">🗺️ Plan</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="guide">ℹ️ Guide</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="kana">あ Kana</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="nums">🔢 Nombres</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="cards">🎴 Cartes</button>
+  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
 </nav>
 
 <main class="px-4 mt-4 max-w-xl mx-auto">
@@ -50,6 +52,49 @@
     <div id="kQuiz"></div>
     <div id="kGrid" class="grid grid-cols-5 gap-2"></div>
     <p class="text-xs text-slate-400 mt-3">Touche un kana pour l'écouter, le tracer et le marquer.</p>
+  </section>
+
+  <!-- ONGLET GUIDE : hiragana / katakana / kanji -->
+  <section id="guide" class="hidden space-y-4">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">ひらがな Hiragana</h2>
+      <p class="text-sm mt-1">46 signes arrondis. C'est l'alphabet de la <b>grammaire</b> : particules (は, を, が, の, に), terminaisons des verbes et adjectifs (食べ<b>ます</b>) et mots japonais sans kanji (ありがとう, おいしい). Premier alphabet appris par les enfants, et celui qui sert aussi de lecture aux kanji (furigana).</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">カタカナ Katakana</h2>
+      <p class="text-sm mt-1">46 signes plus anguleux. Ils servent pour les <b>mots étrangers ou empruntés</b> (ホテル, コーヒー, ビール, タクシー), les <b>prénoms et pays étrangers</b> (フランス, マリー) et les <b>onomatopées</b> (ワンワン, ドキドキ). Très utiles en voyage : de nombreux plats, boissons et enseignes y sont écrits. Le trait ー allonge la voyelle (コーヒー = kōhī).</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">漢字 Kanji</h2>
+      <p class="text-sm mt-1">Caractères d'origine chinoise qui portent un <b>sens</b> : environ 2 000 sont d'usage courant. Ils écrivent les noms et la racine des verbes et adjectifs (駅 gare, 出口 sortie, 入口 entrée, 円 yen). Un kanji a souvent plusieurs lectures. Pour le voyage, il suffit de reconnaître une vingtaine de signes clés.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">Pourquoi les trois ensemble ?</h2>
+      <p class="text-lg mt-2 leading-loose" lang="ja"><span class="text-indigo-900 font-bold">私</span><span class="text-pink-500">は</span><span class="text-emerald-600 font-bold">コーヒー</span><span class="text-pink-500">を</span><span class="text-indigo-900 font-bold">飲</span><span class="text-pink-500">みます</span>。</p>
+      <p class="text-xs text-slate-500">watashi wa kōhī o nomimasu : « Je bois du café »</p>
+      <p class="text-sm mt-2"><span class="text-indigo-900 font-bold">Kanji</span> = les mots porteurs de sens (私 je, 飲 boire).<br><span class="text-pink-500 font-bold">Hiragana</span> = la grammaire (は, を) et la fin du verbe (みます).<br><span class="text-emerald-600 font-bold">Katakana</span> = le mot étranger (コーヒー).</p>
+      <p class="text-sm mt-2">Le japonais s'écrit sans espaces : l'alternance des trois écritures sert à repérer où les mots commencent et finissent, et permet de lire plus vite. Le rōmaji (alphabet latin) n'apparaît guère que sur les panneaux touristiques.</p>
+    </div>
+  </section>
+
+  <!-- ONGLET NOMBRES : référence, convertisseur, mini-jeu -->
+  <section id="nums" class="hidden space-y-4">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900 mb-2">Les nombres clés</h2>
+      <div id="nRef" class="grid grid-cols-4 gap-2"></div>
+      <p class="text-xs text-slate-500 mt-2">4 = よん / し, 7 = なな / しち, 9 = きゅう / く. 万 (man) = 10 000 : 3万 = 30 000 (sanman). Touche un nombre pour l'écouter.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">Convertisseur</h2>
+      <div class="flex gap-2 mt-2"><input id="nIn" type="number" inputmode="numeric" min="1" max="99999" placeholder="ex : 3480" class="flex-1 border rounded-lg p-2"><button id="nGo" class="bg-indigo-900 text-white px-4 rounded-lg">🔊</button></div>
+      <div id="nOut" class="mt-2 text-sm"></div>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-bold text-indigo-900">🎯 Mini-jeu</h2>
+      <div id="nLvl" class="flex flex-wrap gap-2 mt-2"></div>
+      <div id="nMode" class="flex flex-wrap gap-2 mt-2"></div>
+      <div id="nQ" class="mt-3 text-center"></div>
+    </div>
   </section>
 
   <section id="cards" class="hidden">
@@ -227,6 +272,7 @@ const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 let done = load("jp_tasks", {});        // {"m-t": true}
 let status = load("jp_cards", {});      // {id: "review" | "master"}
 let filter = "Tous";
+let dir = load("jp_dir", "fr");   // sens des cartes : fr = FR→JP, jp = JP→FR (japonais + rōmaji en face avant)
 const $ = s => document.querySelector(s);
 
 /* ================== ONGLET 1 : FEUILLE DE ROUTE ================== */
@@ -259,21 +305,27 @@ $("#road").addEventListener("change", e=>{
 
 /* ================== ONGLET 2 : FLASHCARDS + AUDIO ================== */
 function renderFilters(){
-  $("#filters").innerHTML = ["Tous",...CATS].map(c=>`<button data-f="${c}" class="shrink-0 px-3 py-1.5 rounded-full text-sm ${c===filter?"bg-indigo-900 text-white":"bg-white text-indigo-900 shadow"}">${c}</button>`).join("");
+  $("#filters").innerHTML = `<button data-dir class="shrink-0 px-3 py-1.5 rounded-full text-sm bg-pink-300 text-indigo-900 font-semibold">${dir==="fr"?"FR → 日本語":"日本語 → FR"}</button>` + ["Tous",...CATS].map(c=>`<button data-f="${c}" class="shrink-0 px-3 py-1.5 rounded-full text-sm ${c===filter?"bg-indigo-900 text-white":"bg-white text-indigo-900 shadow"}">${c}</button>`).join("");
 }
 function renderCards(){
   const list = CARDS.filter(c=>filter==="Tous"||c.cat===filter);
   $("#cardList").innerHTML = list.map(c=>{
-    const s = status[c.id];
+    const s = status[c.id], jp = dir==="jp";
+    // Face avant : français, ou japonais + rōmaji (plus petit, juste dessous) + audio
+    const front = jp
+      ? `<p class="text-3xl font-bold text-indigo-900" lang="ja">${c.ja}</p><p class="text-sm text-pink-500 mt-1">${c.ro}</p><button data-a="speak" aria-label="Écouter" class="mt-3 bg-indigo-50 px-3 py-1.5 rounded-full text-sm">🔊</button>`
+      : `<p class="text-lg font-semibold text-indigo-900">${c.fr}</p>`;
+    const back = jp
+      ? `<p class="text-lg font-semibold">${c.fr}</p>`
+      : `<p class="text-2xl font-bold" lang="ja">${c.ja}</p><p class="text-pink-300 text-base mt-1">${c.ro}</p>`;
     return `<div class="scene" data-id="${c.id}">
       <div class="card">
         <div class="face bg-white shadow flex flex-col items-center justify-center p-4 text-center border-l-4 ${s==="master"?"border-green-400":s==="review"?"border-pink-400":"border-indigo-200"}">
           <span class="text-xs text-pink-500 font-semibold uppercase mb-2">${c.cat}</span>
-          <p class="text-lg font-semibold text-indigo-900">${c.fr}</p>
-          <span class="text-xs text-slate-400 mt-3">Touche pour retourner</span></div>
+          ${front}
+          <span class="text-xs text-slate-400 mt-2">Touche pour retourner</span></div>
         <div class="face back bg-indigo-900 text-white flex flex-col items-center justify-center p-4 text-center">
-          <p class="text-2xl font-bold" lang="ja">${c.ja}</p>
-          <p class="text-pink-300 text-sm mt-1">${c.ro}</p>
+          ${back}
           <div class="flex gap-2 mt-3">
             <button data-a="speak" aria-label="Écouter" class="bg-white/15 px-3 py-1.5 rounded-full text-sm">🔊</button>
             <button data-a="review" class="px-3 py-1.5 rounded-full text-sm ${s==="review"?"bg-pink-300 text-indigo-900":"bg-white/15"}">À revoir</button>
@@ -283,6 +335,7 @@ function renderCards(){
   }).join("");
 }
 $("#filters").addEventListener("click", e=>{
+  if("dir" in e.target.dataset){ dir = dir==="fr"?"jp":"fr"; save("jp_dir", dir); renderFilters(); renderCards(); return; }
   const f = e.target.dataset.f; if(!f) return; filter = f; renderFilters(); renderCards();
 });
 $("#cardList").addEventListener("click", e=>{
@@ -382,6 +435,88 @@ $("#modal").addEventListener("click", e=>{
   if(a==="ok"||a==="review"){ kstatus[cur.ch] = kstatus[cur.ch]===a ? undefined : a; save("jp_kana", kstatus); renderKana(); markBtns(); }
 });
 
+/* ================== ONGLET NOMBRES ================== */
+const NK="いち に さん よん ご ろく なな はち きゅう".split(" "), NR="ichi ni san yon go roku nana hachi kyū".split(" "), NJ="一二三四五六七八九";
+const HK=["ひゃく","にひゃく","さんびゃく","よんひゃく","ごひゃく","ろっぴゃく","ななひゃく","はっぴゃく","きゅうひゃく"];
+const HR=["hyaku","nihyaku","sanbyaku","yonhyaku","gohyaku","roppyaku","nanahyaku","happyaku","kyūhyaku"];
+const SK=["せん","にせん","さんぜん","よんせん","ごせん","ろくせん","ななせん","はっせん","きゅうせん"];
+const SR=["sen","nisen","sanzen","yonsen","gosen","rokusen","nanasen","hassen","kyūsen"];
+/* Nombre (1 à 99 999) -> {k: kana, r: rōmaji, j: kanji}. yen=true ajoute 円 */
+function nw(n, yen){
+  const P=[], m=Math.floor(n/10000), t=Math.floor(n%10000/1000), h=Math.floor(n%1000/100), u=Math.floor(n%100/10), o=n%10;
+  if(m) P.push([NK[m-1]+"まん", NR[m-1]+"man", NJ[m-1]+"万"]);
+  if(t) P.push([SK[t-1], SR[t-1], (t>1?NJ[t-1]:"")+"千"]);
+  if(h) P.push([HK[h-1], HR[h-1], (h>1?NJ[h-1]:"")+"百"]);
+  if(u) P.push([(u>1?NK[u-1]:"")+"じゅう", (u>1?NR[u-1]:"")+"jū", (u>1?NJ[u-1]:"")+"十"]);
+  if(o) P.push([NK[o-1], NR[o-1], NJ[o-1]]);
+  if(yen) P.push(["えん","en","円"]);
+  return {k:P.map(x=>x[0]).join(""), r:P.map(x=>x[1]).join(" "), j:P.map(x=>x[2]).join("")};
+}
+const fmt = n => n.toLocaleString("fr-FR")+" ¥";
+const rnd = (a,b) => a+Math.floor(Math.random()*(b-a+1));
+
+// Tableau de référence
+$("#nRef").innerHTML = [1,2,3,4,5,6,7,8,9,10,100,1000,10000].map(n=>{const w=nw(n);
+  return `<button data-n="${n}" class="rounded-xl bg-indigo-50 py-2"><div class="text-xl" lang="ja">${w.j}</div><div class="text-xs">${w.k}</div><div class="text-xs text-pink-500">${w.r}</div><div class="text-[10px] text-slate-400">${n.toLocaleString("fr-FR")}</div></button>`}).join("");
+
+// Convertisseur libre
+function conv(){
+  const n = Math.floor(+$("#nIn").value);
+  if(!(n>=1 && n<=99999)){ $("#nOut").innerHTML='<span class="text-slate-400">Entre un nombre de 1 à 99 999</span>'; return; }
+  const w = nw(n);
+  $("#nOut").innerHTML = `<p class="text-xl" lang="ja">${w.j}</p><p>${w.k}</p><p class="text-pink-500">${w.r}</p>`;
+}
+$("#nIn").addEventListener("input", conv);
+$("#nGo").addEventListener("click", ()=>{ const n=Math.floor(+$("#nIn").value); if(n>=1&&n<=99999) speak(nw(n).k); });
+
+// Mini-jeu
+const LV=[["10","1–10"],["999","11–999"],["price","Prix ¥"],["add","Addition ¥"]];
+const MD=[["read","👁 Lire → mot"],["hear","👂 Écouter → chiffre"]];
+let nLvl="10", nMode="read", nq=null, nScore={ok:0,n:0};
+function nCtrl(){
+  const b=(id,list,cur)=>list.map(([k,l])=>`<button data-${id}="${k}" class="px-3 py-1.5 rounded-full text-xs ${k===cur?"bg-indigo-900 text-white":"bg-indigo-50 text-indigo-900"}">${l}</button>`).join("");
+  $("#nLvl").innerHTML=b("lv",LV,nLvl); $("#nMode").innerHTML=b("md",MD,nMode);
+}
+function nQuiz(auto){
+  let n, disp, step=1, yen=false, lo=1, hi=10;
+  if(nLvl==="10"){ n=rnd(1,10); disp=String(n); }
+  else if(nLvl==="999"){ n=rnd(11,999); disp=String(n); lo=11; hi=999; }
+  else if(nLvl==="price"){ n=rnd(10,1999)*10; disp=fmt(n); yen=true; step=10; lo=10; hi=99990; }
+  else { const a=rnd(10,300)*10, b=rnd(5,200)*10; n=a+b; disp=fmt(a)+" + "+fmt(b); yen=true; step=10; lo=20; hi=99990; }
+  const set=new Set([n]); let g=0;
+  while(set.size<4 && g++<300){ const d=n+step*rnd(-6,6); if(d>=lo && d<=hi) set.add(d); }
+  const opts=[...set].sort(()=>Math.random()-.5);
+  nq={n,yen,done:false};
+  const read = nMode==="read";
+  const head = read
+    ? `<p class="text-3xl font-bold text-indigo-900">${disp}${nLvl==="add"?" = ?":""}</p><p class="text-xs text-slate-500">Choisis la bonne lecture</p>`
+    : `<button data-nqs class="text-4xl bg-indigo-50 rounded-full px-5 py-3">🔊</button><p class="text-xs text-slate-500 mt-1">Quel nombre entends-tu ?</p>`;
+  $("#nQ").innerHTML = head + `<div class="grid grid-cols-1 gap-2 mt-3 text-sm">${opts.map(o=>
+    `<button data-nqa="${o}" class="bg-indigo-50 rounded-xl py-2 px-2">${read?nw(o,yen).r:(yen?fmt(o):o)}</button>`).join("")}</div>
+    <p id="nFb" class="text-sm mt-3"></p><p id="nScore" class="text-xs text-slate-400 mt-1">Score : ${nScore.ok}/${nScore.n}</p>`;
+  if(!read && auto) speak(nw(n,yen).k);
+}
+$("#nums").addEventListener("click", e=>{
+  const t=e.target.closest("button"); if(!t) return; const d=t.dataset;
+  if(d.n) speak(nw(+d.n).k);
+  else if(d.lv){ nLvl=d.lv; nCtrl(); nQuiz(true); }
+  else if(d.md){ nMode=d.md; nCtrl(); nQuiz(true); }
+  else if("nqs" in d) speak(nw(nq.n,nq.yen).k);
+  else if("nnext" in d) nQuiz(true);
+  else if(d.nqa){
+    if(nq.done) return; nq.done=true; nScore.n++;
+    const ok = +d.nqa===nq.n; if(ok) nScore.ok++;
+    document.querySelectorAll("[data-nqa]").forEach(b=>{
+      if(+b.dataset.nqa===nq.n){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-green-200"); }
+      else if(b===t){ b.classList.remove("bg-indigo-50"); b.classList.add("bg-pink-200"); }
+    });
+    const w=nw(nq.n,nq.yen);
+    $("#nFb").innerHTML = `${ok?"✔ Bravo !":"✘ Raté"} <span lang="ja">${w.j}</span> · ${w.k} · <span class="text-pink-500">${w.r}</span><br><button data-nnext class="mt-2 bg-pink-300 text-indigo-900 font-semibold rounded-full px-4 py-1.5">Suivant ➜</button>`;
+    $("#nScore").textContent = `Score : ${nScore.ok}/${nScore.n}`;
+    speak(w.k);
+  }
+});
+
 /* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
 const d = new Date(); 
 $("#icsEnd").value = `${d.getMonth()>4?d.getFullYear()+1:d.getFullYear()}-05-31`;
@@ -416,7 +551,7 @@ $("#icsBtn").addEventListener("click", ()=>{
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
   b.classList.add("active"); b.classList.remove("text-slate-500");
-  ["road","kana","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
+  ["road","guide","kana","nums","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
 }));
 
 /* ================== PWA : MANIFESTE DYNAMIQUE ================== */
@@ -456,7 +591,7 @@ if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostn
 }
 
 /* ================== INIT ================== */
-renderRoad(); renderKana(); renderFilters(); renderCards();
+renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv();
 </script>
 </body>
 </html>
