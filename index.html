@@ -7,7 +7,7 @@
 <title>Nihongo Tabi 日本語旅</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  body{background:#f8f5fa;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+  body{background:#f5f3fa;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
   /* Effet flip 3D des flashcards */
   .scene{perspective:1000px}
   .card{position:relative;height:200px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
@@ -15,43 +15,96 @@
   .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:1rem}
   .back{transform:rotateY(180deg)}
   .tab.active{color:#1e2a5e;border-bottom:3px solid #f4a7b9;font-weight:700}
+
+  .shadow{box-shadow:0 6px 24px rgba(30,42,94,.08)!important}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .12s,background-color .2s,color .2s}
+  button:active{transform:scale(.96)}
+  .view{animation:viewIn .3s ease both}
+  @keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  /* Menu latéral */
+  .drawer{transform:translateX(-100%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .drawer.open{transform:none}
+  .scrim{opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .dr{display:flex;align-items:center;gap:12px;width:100%;padding:13px 20px;text-align:left;font-size:15px;color:#1e2a5e;border-left:4px solid transparent}
+  .dr.sub{padding-left:36px;font-size:14px}
+  .dr.act{background:#fdf0f4;font-weight:700;border-left-color:#f4a7b9}
+  /* Barre du bas (style application native) */
+  .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;font-size:11px;color:#8b90a8}
+  .bn .ic{width:56px;height:30px;border-radius:15px;display:grid;place-items:center;font-size:18px;transition:background .25s}
+  .bn.act{color:#1e2a5e;font-weight:700}
+  .bn.act .ic{background:#fbd5df}
+  /* Sous-menu Apprendre */
+  .sg{flex:1;padding:9px 6px;border-radius:12px;font-size:13px;background:rgba(255,255,255,.12);color:#fff}
+  .sg.act{background:#f4a7b9;color:#1e2a5e;font-weight:700}
+  @media (prefers-reduced-motion:reduce){.view{animation:none}.drawer,.scrim{transition:none}}
 </style>
 </head>
 <body class="text-slate-800 pb-8">
 
-<!-- EN-TÊTE + PROGRESSION GLOBALE -->
-<header class="bg-indigo-900 text-white px-4 pt-4 pb-5 rounded-b-3xl shadow">
-  <div class="flex justify-between items-center">
-    <h1 class="text-xl font-bold">🌸 Nihongo Tabi <span class="text-pink-300">日本語旅</span></h1>
-    <button id="installBtn" class="hidden text-xs bg-pink-300 text-indigo-900 font-semibold px-3 py-1.5 rounded-full">Installer l'application</button>
+<!-- BARRE SUPÉRIEURE : menu hamburger, titre, progression, sous-menu Apprendre -->
+<header class="sticky top-0 z-30 bg-indigo-900 text-white shadow-lg" style="padding-top:env(safe-area-inset-top)">
+  <div class="flex items-center gap-2 px-3 h-14">
+    <button id="menuBtn" aria-label="Ouvrir le menu" class="w-11 h-11 grid place-items-center rounded-full text-2xl active:bg-white/10">☰</button>
+    <h1 id="pageTitle" class="flex-1 font-bold text-lg truncate">🌸 Nihongo Tabi</h1>
+    <button id="installBtn" class="hidden text-xs bg-pink-300 text-indigo-900 font-semibold px-3 py-2 rounded-full">Installer</button>
   </div>
-  <div class="mt-3 text-sm flex justify-between"><span>Progression globale</span><span id="pct">0%</span></div>
-  <div class="h-3 bg-indigo-800 rounded-full mt-1 overflow-hidden"><div id="bar" class="h-full bg-pink-300 transition-all" style="width:0"></div></div>
+  <div class="flex items-center gap-2 px-4 pb-2 text-[11px] text-indigo-200">
+    <span>Plan</span><div class="flex-1 h-1.5 bg-indigo-800 rounded-full overflow-hidden"><div id="bar" class="h-full bg-pink-300 transition-all" style="width:0"></div></div><span id="pct">0%</span>
+  </div>
+  <div id="seg" class="gap-2 px-4 pb-3" style="display:none">
+    <button class="sg" data-go="cards">🎴 Cartes</button>
+    <button class="sg" data-go="kana">あ Kana</button>
+    <button class="sg" data-go="nums">🔢 Chiffres</button>
+  </div>
 </header>
 
-<!-- NAVIGATION PAR ONGLETS -->
-<nav class="flex overflow-x-auto bg-white shadow-sm sticky top-0 z-10 text-sm">
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 active" data-t="home">🏠 Aujourd'hui</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="road">🗺️ Plan</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="guide">ℹ️ Guide</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="kana">あ Kana</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="nums">🔢 Nombres</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="cards">🎴 Cartes</button>
-  <button class="tab flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-slate-500" data-t="ics">⏰ Rappels</button>
+<!-- MENU LATÉRAL -->
+<div id="scrim" class="scrim fixed inset-0 z-40 bg-black/40"></div>
+<aside id="drawer" class="drawer fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[82%] bg-white shadow-2xl flex flex-col overflow-y-auto" style="padding-top:env(safe-area-inset-top)">
+  <div class="bg-gradient-to-br from-indigo-900 to-indigo-700 text-white px-5 py-6">
+    <p class="text-3xl">🌸</p><p class="font-bold text-lg mt-1">Nihongo Tabi <span class="text-pink-300">日本語旅</span></p>
+    <p class="text-xs text-indigo-200 mt-1">Ton compagnon pour le voyage</p>
+  </div>
+  <nav class="py-2">
+    <button class="dr" data-go="home">🏠 Accueil</button>
+    <p class="px-5 pt-4 pb-1 text-[11px] uppercase tracking-wide text-slate-400 font-semibold">Apprendre</p>
+    <button class="dr sub" data-go="cards">🎴 Flashcards</button>
+    <button class="dr sub" data-go="kana">あ Écriture · Kana</button>
+    <button class="dr sub" data-go="nums">🔢 Chiffres &amp; prix</button>
+    <p class="px-5 pt-4 pb-1 text-[11px] uppercase tracking-wide text-slate-400 font-semibold">Suivi</p>
+    <button class="dr sub" data-go="road">🗺️ Plan sur 6 mois</button>
+    <button class="dr sub" data-go="guide">ℹ️ Guide des kana</button>
+    <button class="dr sub" data-go="ics">⏰ Rappels (.ics)</button>
+  </nav>
+</aside>
+
+<!-- BARRE DU BAS -->
+<nav id="bnav" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 flex" style="padding-bottom:env(safe-area-inset-bottom)">
+  <button class="bn" data-go="home"><span class="ic">🏠</span>Accueil</button>
+  <button class="bn" data-go="learn"><span class="ic">🎓</span>Apprendre</button>
+  <button class="bn" data-menu><span class="ic">☰</span>Menu</button>
 </nav>
 
-<main class="px-4 mt-4 max-w-xl mx-auto">
-  <!-- ACCUEIL : mot du jour + exercice du jour -->
+<main class="px-4 mt-4 pb-28 max-w-xl mx-auto">
+  <!-- ACCUEIL : mot du jour, accès rapides, exercice, photo, anecdote -->
   <section id="home" class="space-y-4">
     <div id="dWord"></div>
-    <div class="bg-white rounded-2xl shadow p-4">
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <button data-go="cards" class="bg-white rounded-2xl shadow py-3"><div class="text-2xl">🎴</div><div class="text-xs font-semibold text-indigo-900 mt-1">Flashcards</div></button>
+      <button data-go="kana" class="bg-white rounded-2xl shadow py-3"><div class="text-2xl">あ</div><div class="text-xs font-semibold text-indigo-900 mt-1">Écriture</div></button>
+      <button data-go="nums" class="bg-white rounded-2xl shadow py-3"><div class="text-2xl">🔢</div><div class="text-xs font-semibold text-indigo-900 mt-1">Chiffres</div></button>
+    </div>
+    <div class="bg-white rounded-3xl shadow p-5">
       <div class="flex justify-between items-start gap-2">
         <div><span id="dMonth" class="text-xs text-pink-500 font-semibold uppercase"></span>
-          <h2 class="font-bold text-indigo-900">Exercice du jour</h2></div>
+          <h2 class="font-bold text-indigo-900 text-lg">Exercice du jour</h2></div>
         <div id="dStats" class="text-right text-xs text-slate-500 shrink-0"></div>
       </div>
       <div id="dEx" class="mt-3"></div>
     </div>
+    <div id="dPhoto"></div>
+    <div id="dFact"></div>
   </section>
 
   <section id="road" class="hidden space-y-4"></section>
@@ -132,7 +185,7 @@
 </main>
 
 <!-- MODALE : détail d'un kana + zone de tracé -->
-<div id="modal" class="hidden fixed inset-0 z-20 bg-black/50 flex items-end justify-center">
+<div id="modal" class="hidden fixed inset-0 z-[60] bg-black/50 flex items-end justify-center">
   <div class="bg-white rounded-t-3xl w-full max-w-xl p-4 pb-6 max-h-[95vh] overflow-y-auto">
     <div class="flex items-center justify-between">
       <div class="flex items-baseline gap-3"><span id="mCh" lang="ja" class="text-4xl font-bold text-indigo-900"></span><span id="mRo" class="text-pink-500 text-lg"></span></div>
@@ -644,12 +697,79 @@ function initHome(){
   homeKey = dkey();
   const i = mIdx(), inPlan = new Date().getMonth() in PLANMAP;
   $("#dMonth").textContent = `${inPlan?"":"Aperçu · "}Mois ${i+1} · ${ROADMAP[i].m} — ${ROADMAP[i].t}`;
-  renderWord(); newDq(false);
+  renderWord(); renderPhoto(); renderFact(); newDq(false);
   if(homeKey in daily){ dq.i = dq.qs.length; dq.ok = daily[homeKey]; }   // déjà validé aujourd'hui
   renderEx(); renderStats();
 }
 // Nouveau jour si l'appli reste ouverte / revient au premier plan
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && dkey()!==homeKey) initHome(); });
+
+/* ================== ACCUEIL : PHOTO DU JOUR & ANECDOTE ================== */
+/* Illustrations vectorielles générées dans l'appli (fonctionnent hors-ligne, variées chaque jour) */
+const svgBox = (id, c1, c2, inner) => `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" class="w-full h-48 block" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="400" height="200" fill="url(#${id})"/>${inner}</svg>`;
+const petals = (r,n) => Array.from({length:n},()=>`<circle cx="${r()*400|0}" cy="${r()*200|0}" r="${(1.5+r()*2).toFixed(1)}" fill="#f9c3d0" opacity=".85"/>`).join("");
+const SCENES = [
+  {t:"Le mont Fuji au petit matin", f:r=>svgBox("g0","#1e2a5e","#f4a7b9",`<circle cx="${250+r()*80|0}" cy="${55+r()*30|0}" r="24" fill="#fff4ee" opacity=".92"/><path d="M40 175 L195 42 L350 175Z" fill="#2c3a78"/><path d="M165 70 L195 42 L225 70 L210 65 L195 76 L180 64Z" fill="#fff"/><path d="M0 172 Q110 150 220 172 T400 168 V200 H0Z" fill="#141c45"/>${petals(r,14)}`)},
+  {t:"Torii au crépuscule", f:r=>svgBox("g1","#f4a7b9","#1e2a5e",`<circle cx="${60+r()*280|0}" cy="${50+r()*20|0}" r="20" fill="#fff4ee" opacity=".9"/><rect y="150" width="400" height="50" fill="#141c45"/><rect x="150" y="70" width="12" height="85" fill="#d9304a"/><rect x="238" y="70" width="12" height="85" fill="#d9304a"/><path d="M128 70 Q200 52 272 70 L272 82 H128Z" fill="#d9304a"/><rect x="144" y="94" width="112" height="9" fill="#d9304a"/><rect x="150" y="158" width="12" height="30" fill="#d9304a" opacity=".35"/><rect x="238" y="158" width="12" height="30" fill="#d9304a" opacity=".35"/>`)},
+  {t:"Cerisiers en fleurs", f:r=>svgBox("g2","#fdeaf0","#f9c3d0",`<path d="M-10 45 Q120 80 230 45 T420 75" stroke="#5b3a3a" stroke-width="6" fill="none"/>${Array.from({length:60},(_,i)=>`<circle cx="${r()*400|0}" cy="${15+r()*100|0}" r="${(4+r()*5).toFixed(1)}" fill="${i%3?"#f4a7b9":"#fff"}" opacity=".9"/>`).join("")}${petals(r,22)}`)},
+  {t:"Pagode sous la lune", f:r=>svgBox("g3","#141c45","#2c3a78",`<circle cx="${60+r()*60|0}" cy="45" r="22" fill="#fff4ee"/>${Array.from({length:25},()=>`<circle cx="${r()*400|0}" cy="${r()*110|0}" r="1.2" fill="#fff"/>`).join("")}<rect y="170" width="400" height="30" fill="#0d1230"/>${[0,1,2].map(i=>`<rect x="${172+i*8}" y="${135-i*36}" width="${56-i*16}" height="26" fill="#e9d8c4"/><path d="M${135+i*14} ${137-i*36} Q200 ${122-i*36} ${265-i*14} ${137-i*36} L${255-i*14} ${146-i*36} H${145+i*14}Z" fill="#b8324a"/>`).join("")}<rect x="198" y="2" width="4" height="22" fill="#c9a24b"/>`)},
+  {t:"Lanternes de festival", f:r=>svgBox("g4","#1e2a5e","#0d1230",`<line x1="0" y1="8" x2="400" y2="8" stroke="#555"/>${Array.from({length:7},(_,i)=>{const x=30+i*55+(r()*16-8)|0,y=45+r()*60|0;return `<line x1="${x}" y1="8" x2="${x}" y2="${y}" stroke="#888"/><ellipse cx="${x}" cy="${y+16}" rx="24" ry="28" fill="#ffb199" opacity=".22"/><ellipse cx="${x}" cy="${y+16}" rx="13" ry="17" fill="#e0364f"/><rect x="${x-6}" y="${y-2}" width="12" height="4" fill="#222"/>`}).join("")}`)},
+  {t:"La grande vague", f:r=>svgBox("g5","#fdf1e3","#f4a7b9",`<path d="M150 125 L200 88 L250 125Z" fill="#6b7fb5"/><path d="M0 142 Q50 92 100 132 Q130 72 170 112 Q200 152 260 122 Q330 82 400 137 V200 H0Z" fill="#1e2a5e"/><path d="M0 168 Q100 142 200 168 T400 162 V200 H0Z" fill="#33407a"/>${petals(r,10)}`)}
+];
+/* Photos libres (Wikimedia Commons) : essayées certains jours, repli automatique sur l'illustration si hors-ligne */
+const PHOTOS = [
+  {f:"KyotoFushimiInariLarge.jpg", t:"Les torii de Fushimi Inari, Kyoto"},
+  {f:"Torii path with lantern at Fushimi Inari Taisha Shrine, Kyoto, Japan.jpg", t:"Chemin de torii et lanterne, Fushimi Inari"}
+];
+function renderPhoto(){
+  const n = SCENES.length+PHOTOS.length, i = dayNum()%n, r = mulberry(dayNum()), sc = SCENES[i%SCENES.length];
+  const scene = () => ({media:sc.f(r), t:sc.t+" (illustration)", c:"Illustration générée dans l'application"});
+  let m;
+  if(i<SCENES.length) m = scene();
+  else { const ph = PHOTOS[i-SCENES.length], q = encodeURIComponent(ph.f);
+    m = {media:`<img src="https://commons.wikimedia.org/wiki/Special:FilePath/${q}?width=900" alt="${ph.t}" loading="lazy" class="w-full h-48 object-cover block">`, t:ph.t,
+         c:`<a href="https://commons.wikimedia.org/wiki/File:${q}" target="_blank" rel="noopener" class="underline">Photo : Wikimedia Commons</a>`}; }
+  $("#dPhoto").innerHTML = `<div class="bg-white rounded-3xl shadow overflow-hidden"><div id="phMedia" class="bg-indigo-100">${m.media}</div>
+    <div class="p-4"><p class="text-xs uppercase font-semibold text-pink-500">📷 Le Japon du jour</p><p id="phT" class="font-bold text-indigo-900 mt-1">${m.t}</p><p id="phC" class="text-xs text-slate-400 mt-1">${m.c}</p></div></div>`;
+  const img = $("#phMedia").querySelector("img");
+  if(img) img.addEventListener("error", ()=>{ const f=scene(); $("#phMedia").innerHTML=f.media; $("#phT").textContent=f.t; $("#phC").textContent=f.c; });
+}
+const FACTS = [
+["Pas de pourboire","Au Japon, le service est inclus et laisser un pourboire peut embarrasser le personnel. Un simple « gochisōsama deshita » en partant est le meilleur des remerciements."],
+["On se déchausse","On retire ses chaussures chez soi, dans de nombreux restaurants à tatamis, ryokan et temples. Des chaussons sont parfois prévus, y compris pour les toilettes."],
+["Le bruit des nouilles","Aspirer bruyamment ses nouilles (ramen, soba) est une façon d'apprécier le plat, et cela les refroidit aussi."],
+["Baguettes : les interdits","Ne plantez jamais vos baguettes à la verticale dans le riz, un geste associé aux rites funéraires, et ne passez pas un aliment de baguettes à baguettes."],
+["Des trains à la minute","Le réseau ferré japonais est réputé pour sa ponctualité : sur le Shinkansen, le retard moyen est de l'ordre d'une minute. Les employés s'excusent même pour un court retard."],
+["Le mont Fuji","Il culmine à 3 776 m, c'est le plus haut sommet du pays. Le volcan est considéré comme actif ; sa dernière éruption remonte à 1707."],
+["Hanami","À la floraison des cerisiers, fin mars et début avril dans une grande partie du pays, on pique-nique sous les arbres : c'est le hanami."],
+["Konbini","Les supérettes (7-Eleven, Lawson, FamilyMart) sont ouvertes à toute heure et proposent onigiri, plats chauds, retrait d'argent et paiement de factures."],
+["Omotenashi","Ce mot désigne l'hospitalité japonaise : anticiper les besoins de l'invité sans rien attendre en retour."],
+["Les kōban","Ces petits postes de police de quartier servent aussi à renseigner : on peut y demander son chemin ou y déposer un objet trouvé."],
+["Suica, la carte magique","Lancée en 2001 par JR East, la carte Suica paie les trains, les bus et même les achats en konbini et aux distributeurs."],
+["Un archipel immense","Le Japon compte plus de 14 000 îles, mais l'essentiel de la population vit sur quatre grandes : Honshū, Hokkaidō, Kyūshū et Shikoku."],
+["Séismes : le bon réflexe","Le Japon est très exposé aux séismes. Les smartphones reçoivent des alertes et, en cas de secousse, on se protège d'abord sous une table solide."],
+["L'art de la révérence","L'inclinaison (ojigi) remplace souvent la poignée de main : plus elle est profonde, plus le respect est grand. Un léger signe de tête suffit pour un visiteur."],
+["Meishi : la carte de visite","On la tend et on la reçoit à deux mains, puis on la regarde avec attention avant de la ranger avec soin."],
+["Silence dans le train","On met son téléphone en mode silencieux (« manner mode ») et on évite de téléphoner dans les trains et les bus."],
+["L'ère Reiwa","Les années se comptent aussi par ères impériales. L'ère Reiwa a débuté le 1er mai 2019 avec l'avènement de l'empereur Naruhito."],
+["Où sont les poubelles ?","Il y a peu de poubelles dans la rue : on garde ses déchets sur soi jusqu'à trouver un bac, et le tri est très rigoureux."],
+["Toilettes high-tech","Siège chauffant, jets d'eau, bruitages discrets : les toilettes japonaises sont célèbres pour leur confort. Les boutons sont souvent en kanji, un bon exercice de lecture !"],
+["Onsen : la règle d'or","On se lave soigneusement avant d'entrer dans le bain commun, et la serviette ne trempe pas dans l'eau. Les tatouages sont parfois refusés dans certains établissements."],
+["Jardins secs","Dans un jardin zen (karesansui), le gravier ratissé évoque l'eau et les rochers figurent des îles ou des montagnes."],
+["Kintsugi","Cet art répare les céramiques brisées avec de la laque saupoudrée d'or et fait de la cassure une part de la beauté de l'objet."],
+["Maneki-neko","Le chat porte-bonheur lève une patte pour inviter les clients : la gauche attirerait les visiteurs, la droite l'argent. Les interprétations varient."],
+["Passer un torii","Le torii marque l'entrée d'un lieu sacré shinto. On s'incline légèrement avant de passer et on évite de marcher au centre, réservé aux divinités."],
+["Sanctuaire ou temple ?","Au sanctuaire shinto : deux inclinaisons, deux battements de mains, une prière, puis une inclinaison. Au temple bouddhiste : on joint les mains en silence."],
+["Omiyage","Il est très courant de rapporter des spécialités de son voyage à ses collègues et proches : une jolie boîte de gâteaux locaux fait toujours plaisir."],
+["Manger en marchant","Manger en marchant est mal vu : on s'arrête près du stand ou du distributeur, sauf lors des festivals."],
+["Distributeurs partout","Les distributeurs automatiques vendent boissons chaudes et froides à presque tous les coins de rue, jusque dans des endroits reculés."],
+["Un pays de volcans","Le Japon compte plus de 100 volcans actifs : il se situe sur la ceinture de feu du Pacifique, d'où ses nombreuses sources chaudes."],
+["Les kanji","Environ 2 100 kanji sont d'usage courant (2 136 dans la liste officielle jōyō). Les écoliers les apprennent tout au long de leur scolarité."]
+];
+function renderFact(){
+  const [t,x] = FACTS[(dayNum()*7)%FACTS.length];
+  $("#dFact").innerHTML = `<div class="bg-white rounded-3xl shadow p-5 border-l-4 border-pink-300"><p class="text-xs uppercase font-semibold text-pink-500">🎎 Le saviez-vous ?</p><h3 class="font-bold text-indigo-900 mt-1">${t}</h3><p class="text-sm text-slate-600 mt-2 leading-relaxed">${x}</p></div>`;
+}
 
 /* ================== ONGLET 3 : GÉNÉRATEUR .ICS ================== */
 const d = new Date(); 
@@ -681,12 +801,36 @@ $("#icsBtn").addEventListener("click", ()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 });
 
-/* ================== NAVIGATION ================== */
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.classList.add("text-slate-500")});
-  b.classList.add("active"); b.classList.remove("text-slate-500");
-  ["home","road","guide","kana","nums","cards","ics"].forEach(id=>$("#"+id).classList.toggle("hidden", id!==b.dataset.t));
-}));
+/* ================== NAVIGATION (menu latéral, barre du bas, sous-menu Apprendre) ================== */
+const VIEWS = ["home","road","guide","kana","nums","cards","ics"], LEARN = ["cards","kana","nums"];
+const TITLES = {home:"🌸 Nihongo Tabi", cards:"Flashcards", kana:"Écriture · Kana", nums:"Chiffres & prix", road:"Plan sur 6 mois", guide:"Guide des kana", ics:"Rappels d'étude"};
+let lastLearn = "cards";
+const openDrawer = () => { $("#drawer").classList.add("open"); $("#scrim").classList.add("open"); };
+const closeDrawer = () => { $("#drawer").classList.remove("open"); $("#scrim").classList.remove("open"); };
+function go(id){
+  if(id==="learn") id = lastLearn;
+  if(LEARN.includes(id)) lastLearn = id;
+  VIEWS.forEach(v=>{
+    const el = $("#"+v);
+    if(v===id){ el.classList.remove("hidden","view"); void el.offsetWidth; el.classList.add("view"); }
+    else el.classList.add("hidden");
+  });
+  const inLearn = LEARN.includes(id);
+  $("#pageTitle").textContent = TITLES[id];
+  $("#seg").style.display = inLearn ? "flex" : "none";
+  document.querySelectorAll(".sg,.dr").forEach(b=>b.classList.toggle("act", b.dataset.go===id));
+  const tab = id==="home" ? "home" : inLearn ? "learn" : "";
+  document.querySelectorAll(".bn[data-go]").forEach(b=>b.classList.toggle("act", b.dataset.go===tab));
+  document.querySelector(".bn[data-menu]").classList.toggle("act", tab==="");
+  closeDrawer(); window.scrollTo({top:0});
+}
+document.addEventListener("click", e=>{
+  const g = e.target.closest("[data-go]");
+  if(g) return go(g.dataset.go);
+  if(e.target.closest("#menuBtn,[data-menu]")) openDrawer();
+  else if(e.target.id==="scrim") closeDrawer();
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeDrawer(); });
 
 /* ================== PWA : MANIFESTE DYNAMIQUE ================== */
 function icon(size){
@@ -725,7 +869,7 @@ if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostn
 }
 
 /* ================== INIT ================== */
-renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv(); initHome();
+renderRoad(); renderKana(); renderFilters(); renderCards(); nCtrl(); nQuiz(false); conv(); initHome(); go("home");
 </script>
 </body>
 </html>
